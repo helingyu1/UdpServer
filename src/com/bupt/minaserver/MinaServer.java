@@ -5,8 +5,6 @@ import java.util.concurrent.Executors;
 
 import org.apache.log4j.Logger;
 import org.apache.mina.core.session.ExpiringSessionRecycler;
-import org.apache.mina.filter.codec.ProtocolCodecFilter;
-import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
 import org.apache.mina.filter.executor.ExecutorFilter;
 import org.apache.mina.transport.socket.DatagramSessionConfig;
 import org.apache.mina.transport.socket.nio.NioDatagramAcceptor;
@@ -38,11 +36,12 @@ public class MinaServer {
 		dcfg.setSendBufferSize(1024);
 		
 		dcfg.setUseReadOperation(true);
-		acceptor.setDefaultLocalAddress(new InetSocketAddress(12345));
+		int port = 7777;
+		acceptor.setDefaultLocalAddress(new InetSocketAddress(port));
 		acceptor.bind();
 		// ** UDP服务端开始侦听
 //		acceptor.bind(new InetSocketAddress(12345));
-		logger.debug("服务器开始监听");
+		logger.debug("服务器开始监听："+port+"端口");
 	}
 
 }

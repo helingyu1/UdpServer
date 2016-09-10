@@ -1,17 +1,15 @@
 package com.bupt.service;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.Arrays;
 import java.util.Calendar;
 
 import org.apache.log4j.Logger;
 import org.apache.mina.core.buffer.IoBuffer;
-import org.apache.mina.core.future.ReadFuture;
+import org.apache.mina.core.future.IoFuture;
 import org.apache.mina.core.future.WriteFuture;
-import org.apache.mina.core.service.IoService;
 import org.apache.mina.core.session.IoSession;
+import org.apache.mina.transport.socket.nio.NioDatagramConnector;
 
 import com.bupt.dao.DBDaoImpl;
 import com.bupt.entity.AcessPoint;
@@ -62,34 +60,68 @@ public class RequestService {
 	/**
 	 * 发往插座(从数据库中提取出wifi_ipv4,wifi_ipv4_port填充到数据包中)
 	 */
-	public void send_to_socket(IoSession session,AcessPoint ap) {
-		
-		String[] tel_buf = new String[37];	// 发送给手机的响应信息
-		String[] newbuf = ap.getRecv();	//发送给插座的信息
-		
-		tel_buf[0] = MSG_ERROR_STATUS+"";
-		// 设置tel_buf中的macid
-		for(int i=MAC_OFFSET;i<MAC_OFFSET+6;i++){
-			tel_buf[i] = ap.getRecv()[i];
-		}
-		// step1:在record表中查询wifi_ipv4,wifi_ipv4_port
-		Record record = DBDaoImpl.getInfoFromRecord(ap);
-//		logger.debug(record.isRecorded());
-		if(!record.isRecorded()){
-			logger.debug("查找失败");
-			// 如果不存在记录，向手机发送错误响应消息
-			tel_buf[PARA_OFFSET] = NO_SOCKET_ADDR+"";
-			send(session, tel_buf);
-			return;
-		}
-		logger.debug("查完了");
-		// step2:根据查出ip 端口号，向其发送信息，测试是否在线
-		
-		// step3:向手机发送正确响应信息
-		tel_buf[PARA_OFFSET] = NO_ERROR+"";
-		send(session,tel_buf);
+    public void send_to_socket(IoSession session, AcessPoint ap) {
 
-	}
+        byte[] tel_buf = new byte[37];    // 发送给手机的响应内容
+        byte[] newbuf = RequestService.String2Byte(ap.getRecv());    //发送给wifi插座的内容
+
+        tel_buf[0] = (byte) MSG_ERROR_STATUS;
+        //设置tel_buf中的macid
+        for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
+            tel_buf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
+        }
+        
+        // step1:在record表中查询wifi_ipv4,wifi_ipv4_port
+        Record record = DBDaoImpl.getInfoFromRecord(ap);
+        if (!record.isRecorded()) {
+            logger.debug("read database error");
+            // 如果不存在记录，向手机发送错误响应消息
+            tel_buf[PARA_OFFSET] = (byte) NO_SOCKET_ADDR;
+            if (!send(session, tel_buf)) {
+                logger.warn("send to mobile error");
+            }
+            return;
+        }
+        logger.info("Succeed!Find wifi ip and port for mac_id:"+ap.getWifi_id());
+        // step2:根据查出ip 端口号，向其发送信息，测试是否在线
+        // 将手机ip和端口号写入newbuf
+        String mobileIpString = ((InetSocketAddress) session.getRemoteAddress()).getAddress().getHostAddress();
+
+        String[] mobileIpStringArray = mobileIpString.split("\\.");
+        logger.debug("telephone ip is:"+Arrays.toString(mobileIpStringArray));
+        byte[] mobileIp = new byte[4];
+        for (int i = 0; i < mobileIp.length; i++) {
+            mobileIp[i] = (byte) Integer.parseInt(mobileIpStringArray[i]);
+        }
+        logger.info("send_to_socket() mobileIp="+Arrays.toString(mobileIp));
+        for (int i = 8; i < 12; i++) {
+            newbuf[i] = mobileIp[i - 8];
+        }
+        newbuf[13] = (byte) ((InetSocketAddress) session.getRemoteAddress()).getPort();
+        newbuf[12] = (byte) (((InetSocketAddress) session.getRemoteAddress()).getPort() >> 8);
+        
+        if (newbuf[18] == 0x5f && newbuf[19] == 0x3f) {
+            logger.info(newbuf);
+            logger.info("this is what we send to socket\r\n");
+        }
+
+        // step3:向wifi插座转发信息
+        logger.debug("newbuf is:"+Arrays.toString(newbuf));
+        if(send(session, newbuf, new InetSocketAddress(Helper.longToIp(record.getWifi_ipv4()), record.getWifi_ipv4_port()))){
+        	logger.debug("Succeed!Send to wifi socket finished!");
+        }else{
+        	logger.warn("Failure!Send to wifi socket failed!");
+        }
+        
+
+        // step4:向手机发送正确响应信息
+        tel_buf[PARA_OFFSET] = NO_ERROR;
+        if (!send(session, tel_buf)) {
+            logger.warn("send to mobile error\n");
+        }
+        logger.debug("Succeed!");
+    }
+	
 
 	/**
 	 * 发送手机(数据包不作处理直接发往手机)
@@ -136,11 +168,11 @@ public class RequestService {
 //		rtn[11] = (char) (Integer.parseInt(min, 16));
 //		rtn[12] = (char) Integer.parseInt(sec, 16);
 //		System.out.println(Arrays.toString(Helper.char2StringArray(rtn)));
-		WriteFuture writeFuture = send(session, rtn);
-		if (writeFuture.isWritten()) {
-			logger.debug("heartbeat reply  success!");
-			
-		}
+//		WriteFuture writeFuture = send(session, rtn);
+//		if (writeFuture.isWritten()) {
+//			logger.debug("heartbeat reply  success!");
+//			
+//		}
 		// 若收到的消息 recv_buf[18]==0x5f && recv_buf[19]==0x3f :heartbeat reply
 		// success!
 	}
@@ -189,7 +221,7 @@ public class RequestService {
 		
 		// 如果step1，step2 任一一步不存在，就向手机返回信息
 		if(!(NO_ERROR+"").equals(tel_buf[PARA_OFFSET])){
-			send(session, tel_buf);
+//			send(session, tel_buf);
 			return;
 		}
 		// step3:向wifi发信息
@@ -203,17 +235,26 @@ public class RequestService {
 	 * @param data
 	 * @return
 	 */
-	public WriteFuture send(IoSession session, String[] data) {
-//		byte[] toSend = Helper.getBytes(data);
-//		IoBuffer buffer = IoBuffer.wrap(toSend);
-//		WriteFuture future = session.write(buffer);
-//		future.awaitUninterruptibly(100);
-//		return future;
-//		IoBuffer buffer = IoBuffer.wrap(data);
-		WriteFuture future = session.write(data);
+	public boolean send(IoSession session, byte[] data) {
+		IoBuffer buffer = IoBuffer.wrap(data);
+		WriteFuture future = session.write(buffer);
 		future.awaitUninterruptibly(100);
-		return future;
+		return future.isWritten();
 	}
+	public boolean send(IoSession session,byte[] data,InetSocketAddress addr){
+		IoBuffer buffer = IoBuffer.wrap(data);
+		WriteFuture future = session.write(buffer,addr);
+		future.awaitUninterruptibly(100);
+		return future.isWritten();
+	}
+	
+	public static byte[] String2Byte(String[] s) {
+        byte[] res = new byte[s.length];
+        for (int i = 0; i < s.length; i++) {
+            res[i] = (byte) Integer.parseInt(s[i], 16);
+        }
+        return res;
+    }
 
 	public static void main(String[] args) {
 		String a = "e";

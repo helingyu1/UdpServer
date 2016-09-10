@@ -69,7 +69,7 @@ public class DBDaoImpl {
 				
 				//如果存在记录
 				record.setRecorded(true);
-				record.setWifi_ipv4(rs.getInt("wifi_ipv4"));
+				record.setWifi_ipv4(rs.getLong("wifi_ipv4"));
 				record.setWifi_ipv4_port(rs.getInt("wifi_ipv4_port"));
 				long wifi_ipv4 = rs.getLong("wifi_ipv4");
 				long wifi_ipv4_port = rs.getLong("wifi_ipv4_port");
@@ -241,7 +241,11 @@ public class DBDaoImpl {
 //		record.setWifi_ipv4(192);
 //		record.setWifi_ipv4_port(8080);	
 //		replaceToRecord(record);
-		System.out.println(Integer.toHexString(2016));
+//		System.out.println(Integer.toHexString(2016));
+		logger.debug("debug");
+		logger.info("info");
+		logger.warn("warn");
+		logger.error("error");
 	}
 
 }

@@ -82,55 +82,44 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 			throws Exception {
 		// *********************************************** 接收数据
 		// step1:读取收到的数据
-//		System.out.println(message);
 		IoBuffer buffer = (IoBuffer) message;
 		String hex = buffer.getHexDump();
 		System.out.println("hex:"+hex);
 		String[] recv = hex.split(" ");
-		System.out.println(Arrays.toString(recv));
-//		System.out.println("test :::::"+Arrays.toString(buffer.asCharBuffer().array()));;
-//		System.out.println((String)message);
-		// 接收到的byte数组
-		byte[] recv_b = buffer.array();
 		
 		// 转成字符数组
-//		char[] recv = Helper.getChars(recv_b);
-//		logger.debug("服务器接收到的数据："+Arrays.toString(Helper.char2StringArray(recv)));
 		logger.debug("服务器接收到的数据："+Arrays.toString(recv));
 
 		// 得到wifi_id
 		StringBuffer sb = new StringBuffer();
 		for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
-//			sb.append(Helper.char2StringArray(recv)[i]);
 			sb.append(recv[i]);
 		}
 		String mac_id = new String(sb);
+		// 设置此次请求的发起的实体
 		InetSocketAddress addr = (InetSocketAddress) session.getRemoteAddress();
-//		AcessPoint ap = new AcessPoint(addr.getAddress().getHostAddress(),
-//				addr.getPort(), mac_id,recv);
 		String ipStr = addr.getAddress().getHostAddress();
 		long ip = Helper.ipToLong(ipStr);
 		AcessPoint ap = new AcessPoint(ip,
 				addr.getPort(), mac_id,recv);
-//		System.out.println(ap);
 
 		// step2:解析数据
 		int swt = Integer.parseInt(recv[0],16);
 		logger.debug("swt:"+swt);
 		if (swt == 0) { // 功能1：写插座信息到数据库
-			logger.debug("test:进入分支【1】");
+			logger.debug("test:进入分支【1】,写插座信息到数据库");
 			service.store_to_database(session,ap);
 		} else if (swt == 99) { // 功能2：检测服务器是否在线
-			logger.debug("test:进入分支【2】");
+			logger.debug("test:进入分支【2】,检测服务器是否在线");
 			service.detect_alive(session,ap);
 		} else if (swt > 100 && swt < 128) { // 功能3：第三方发送控制命令到服务器
-			logger.debug("test:进入分支【3】");
+			logger.debug("test:进入分支【3】,第三方发送控制命令到服务器");
 			service.outside_send_to_socket(session,ap);
 		} else if (swt >= 1 && swt < 128) { // 功能4：查看多个插座是否在线
-//			logger.debug("test:进入分支【4】");
+			logger.debug("test:进入分支【4】,非第三方发送请求");
 			service.send_to_socket(session,ap);
 		} else if (swt >= 128) { // 功能5：数据包不做处理直接发给手机
-			logger.debug("test:进入分支【5】");
+			logger.debug("test:进入分支【5】，数据包不做处理直接发给手机");
 			service.send_to_mobile(ap);
 		}
 	}
