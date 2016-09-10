@@ -17,7 +17,7 @@ import com.bupt.entity.Record;
 import com.bupt.utils.Helper;
 
 /**
- * ÓÃÀ´´¦Àí²»Í¬ÇëÇóµÄservice²ã
+ * ç”¨æ¥å¤„ç†ä¸åŒè¯·æ±‚çš„serviceå±‚
  * 
  * @author helingyu
  * 
@@ -26,20 +26,20 @@ public class RequestService {
 	private final Logger logger = Logger.getLogger(RequestService.class);
 	private DaoService service = new DaoService();
 
-	// Êı¾İÆ«ÒÆÁ¿
-	private static final int COMID_OFFSET = 1; // comidÆğÊ¼µØÖ·£¨8×Ö½Ú£©
-	private static final int MAC_OFFSET = 14; // macµØÖ·ÆğÊ¼µØÖ·(6×Ö½Ú)
-	private static final int ACTION_OFFSET = 36;// outside·½·¨ÀïÓÃ£¬¶¯×÷²ÎÊıÆğÊ¼µØÖ·£¨1×Ö½Ú£©£¬0ÊÇ¹Ø£¬1ÊÇ¿ª
-	private static final int PARA_OFFSET = 20; // Éè±¸ÃÜÂëÆğÊ¼µØÖ·£¬16×Ö½Ú£¨Ä¿Ç°¶¼ÊÇ0£¿£©
+	// æ•°æ®åç§»é‡
+	private static final int COMID_OFFSET = 1; // comidèµ·å§‹åœ°å€ï¼ˆ8å­—èŠ‚ï¼‰
+	private static final int MAC_OFFSET = 14; // macåœ°å€èµ·å§‹åœ°å€(6å­—èŠ‚)
+	private static final int ACTION_OFFSET = 36;// outsideæ–¹æ³•é‡Œç”¨ï¼ŒåŠ¨ä½œå‚æ•°èµ·å§‹åœ°å€ï¼ˆ1å­—èŠ‚ï¼‰ï¼Œ0æ˜¯å…³ï¼Œ1æ˜¯å¼€
+	private static final int PARA_OFFSET = 20; // è®¾å¤‡å¯†ç èµ·å§‹åœ°å€ï¼Œ16å­—èŠ‚ï¼ˆç›®å‰éƒ½æ˜¯0ï¼Ÿï¼‰
 
-	// ±êÖ¾
+	// æ ‡å¿—
 	private static final int NO_SOCKET_ADDR = 4;
 	private static final int NO_ERROR = 0;
 	private static final int NO_PERMISSION= 5;
-	private static final int MSG_ERROR_STATUS = 128; //ÔÚwifi_socket_server.hÀï
+	private static final int MSG_ERROR_STATUS = 128; //åœ¨wifi_socket_server.hé‡Œ
 
 	/**
-	 * Ğ´ÈëÊı¾İ¿â(´ÓÊÕµ½µÄ°üÖĞ½âÎö³öwifi_id,wifi_ipv4,wifi_ipv4_port) Ğ´Á½ÕÅ±í record ºÍ
+	 * å†™å…¥æ•°æ®åº“(ä»æ”¶åˆ°çš„åŒ…ä¸­è§£æå‡ºwifi_id,wifi_ipv4,wifi_ipv4_port) å†™ä¸¤å¼ è¡¨ record å’Œ
 	 * heartnumber
 	 */
 	public void store_to_database(IoSession session, AcessPoint ap) {
@@ -48,34 +48,34 @@ public class RequestService {
 		record.setWifi_id(ap.getWifi_id());
 		record.setWifi_ipv4(ap.getIp());
 		record.setWifi_ipv4_port(ap.getPort());
-		// step1:Ğ´heartnumber±í
+		// step1:å†™heartnumberè¡¨
 		service.writeToHeartNumber(ap.getWifi_id());
-		// step2:Ğ´record±í
+		// step2:å†™recordè¡¨
 		service.writeToRecord(record);
-		// step3:Éú³ÉÏìÓ¦£¬·µ»Ø¸øap
+		// step3:ç”Ÿæˆå“åº”ï¼Œè¿”å›ç»™ap
 		WriteFuture future = session.write("aaaa");
 
 	}
 
 	/**
-	 * ·¢Íù²å×ù(´ÓÊı¾İ¿âÖĞÌáÈ¡³öwifi_ipv4,wifi_ipv4_portÌî³äµ½Êı¾İ°üÖĞ)
+	 * å‘å¾€æ’åº§(ä»æ•°æ®åº“ä¸­æå–å‡ºwifi_ipv4,wifi_ipv4_portå¡«å……åˆ°æ•°æ®åŒ…ä¸­)
 	 */
     public void send_to_socket(IoSession session, AcessPoint ap) {
 
-        byte[] tel_buf = new byte[37];    // ·¢ËÍ¸øÊÖ»úµÄÏìÓ¦ÄÚÈİ
-        byte[] newbuf = RequestService.String2Byte(ap.getRecv());    //·¢ËÍ¸øwifi²å×ùµÄÄÚÈİ
+        byte[] tel_buf = new byte[37];    // å‘é€ç»™æ‰‹æœºçš„å“åº”å†…å®¹
+        byte[] newbuf = RequestService.String2Byte(ap.getRecv());    //å‘é€ç»™wifiæ’åº§çš„å†…å®¹
 
         tel_buf[0] = (byte) MSG_ERROR_STATUS;
-        //ÉèÖÃtel_bufÖĞµÄmacid
+        //è®¾ç½®tel_bufä¸­çš„macid
         for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
             tel_buf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
         }
         
-        // step1:ÔÚrecord±íÖĞ²éÑ¯wifi_ipv4,wifi_ipv4_port
+        // step1:åœ¨recordè¡¨ä¸­æŸ¥è¯¢wifi_ipv4,wifi_ipv4_port
         Record record = DBDaoImpl.getInfoFromRecord(ap);
         if (!record.isRecorded()) {
             logger.debug("read database error");
-            // Èç¹û²»´æÔÚ¼ÇÂ¼£¬ÏòÊÖ»ú·¢ËÍ´íÎóÏìÓ¦ÏûÏ¢
+            // å¦‚æœä¸å­˜åœ¨è®°å½•ï¼Œå‘æ‰‹æœºå‘é€é”™è¯¯å“åº”æ¶ˆæ¯
             tel_buf[PARA_OFFSET] = (byte) NO_SOCKET_ADDR;
             if (!send(session, tel_buf)) {
                 logger.warn("send to mobile error");
@@ -83,8 +83,8 @@ public class RequestService {
             return;
         }
         logger.info("Succeed!Find wifi ip and port for mac_id:"+ap.getWifi_id());
-        // step2:¸ù¾İ²é³öip ¶Ë¿ÚºÅ£¬ÏòÆä·¢ËÍĞÅÏ¢£¬²âÊÔÊÇ·ñÔÚÏß
-        // ½«ÊÖ»úipºÍ¶Ë¿ÚºÅĞ´Èënewbuf
+        // step2:æ ¹æ®æŸ¥å‡ºip ç«¯å£å·ï¼Œå‘å…¶å‘é€ä¿¡æ¯ï¼Œæµ‹è¯•æ˜¯å¦åœ¨çº¿
+        // å°†æ‰‹æœºipå’Œç«¯å£å·å†™å…¥newbuf
         String mobileIpString = ((InetSocketAddress) session.getRemoteAddress()).getAddress().getHostAddress();
 
         String[] mobileIpStringArray = mobileIpString.split("\\.");
@@ -105,7 +105,7 @@ public class RequestService {
             logger.info("this is what we send to socket\r\n");
         }
 
-        // step3:Ïòwifi²å×ù×ª·¢ĞÅÏ¢
+        // step3:å‘wifiæ’åº§è½¬å‘ä¿¡æ¯
         logger.debug("newbuf is:"+Arrays.toString(newbuf));
         if(send(session, newbuf, new InetSocketAddress(Helper.longToIp(record.getWifi_ipv4()), record.getWifi_ipv4_port()))){
         	logger.debug("Succeed!Send to wifi socket finished!");
@@ -114,7 +114,7 @@ public class RequestService {
         }
         
 
-        // step4:ÏòÊÖ»ú·¢ËÍÕıÈ·ÏìÓ¦ĞÅÏ¢
+        // step4:å‘æ‰‹æœºå‘é€æ­£ç¡®å“åº”ä¿¡æ¯
         tel_buf[PARA_OFFSET] = NO_ERROR;
         if (!send(session, tel_buf)) {
             logger.warn("send to mobile error\n");
@@ -124,21 +124,21 @@ public class RequestService {
 	
 
 	/**
-	 * ·¢ËÍÊÖ»ú(Êı¾İ°ü²»×÷´¦ÀíÖ±½Ó·¢ÍùÊÖ»ú)
+	 * å‘é€æ‰‹æœº(æ•°æ®åŒ…ä¸ä½œå¤„ç†ç›´æ¥å‘å¾€æ‰‹æœº)
 	 */
 	public void send_to_mobile(AcessPoint ap) {
-		// ÊÕµ½ÏûÏ¢ºó£¬Ö±½ÓÔ­·â²»¶¯Ô­Â·¾¶·µ»Ø
+		// æ”¶åˆ°æ¶ˆæ¯åï¼Œç›´æ¥åŸå°ä¸åŠ¨åŸè·¯å¾„è¿”å›
 	}
 
 	/**
-	 * ¼ì²â±¾·şÎñÆ÷ÊÇ·ñÔÚÏß
+	 * æ£€æµ‹æœ¬æœåŠ¡å™¨æ˜¯å¦åœ¨çº¿
 	 */
 	public void detect_alive(IoSession session, AcessPoint ap) {
 		String[] rtn = new String[20];
 		for (int i = 0; i < rtn.length; i++)
 			rtn[i] = "00";
-		// ÊÕµ½ÇëÇó£¬Ìí¼ÓÊ±¼äĞÅÏ¢£¬·µ»Ø
-		// »ñÈ¡µ±Ç°Ê±¼äĞÅÏ¢
+		// æ”¶åˆ°è¯·æ±‚ï¼Œæ·»åŠ æ—¶é—´ä¿¡æ¯ï¼Œè¿”å›
+		// è·å–å½“å‰æ—¶é—´ä¿¡æ¯
 		Calendar cal = Calendar.getInstance();
 		String year = Helper.fill(Integer.toHexString(cal.get(Calendar.YEAR)),
 				4, '0');
@@ -152,16 +152,16 @@ public class RequestService {
 				2, '0');
 		String sec = Helper.fill(Integer.toHexString(cal.get(Calendar.SECOND)),
 				2, '0');
-		rtn[6] = year.substring(2, 4);// Äê·İµÍ×Ö½Ú
-		rtn[7] = year.substring(0, 2);// Äê·İ¸ß×Ö½Ú
+		rtn[6] = year.substring(2, 4);// å¹´ä»½ä½å­—èŠ‚
+		rtn[7] = year.substring(0, 2);// å¹´ä»½é«˜å­—èŠ‚
 		rtn[8] = month;
 		rtn[9] = day;
 		rtn[10] = hour;
 		rtn[11] = min;
 		rtn[12] = sec;
 
-//		rtn[6] = (char) Integer.parseInt(year.substring(2, 4), 16);// Äê·İµÍ×Ö½Ú
-//		rtn[7] = (char) Integer.parseInt(year.substring(0, 2), 16);// Äê·İ¸ß×Ö½Ú
+//		rtn[6] = (char) Integer.parseInt(year.substring(2, 4), 16);// å¹´ä»½ä½å­—èŠ‚
+//		rtn[7] = (char) Integer.parseInt(year.substring(0, 2), 16);// å¹´ä»½é«˜å­—èŠ‚
 //		rtn[8] = (char) (Integer.parseInt(month, 16));
 //		rtn[9] = (char) (Integer.parseInt(day, 16));
 //		rtn[10] = (char) (Integer.parseInt(hour, 16));
@@ -173,63 +173,109 @@ public class RequestService {
 //			logger.debug("heartbeat reply  success!");
 //			
 //		}
-		// ÈôÊÕµ½µÄÏûÏ¢ recv_buf[18]==0x5f && recv_buf[19]==0x3f :heartbeat reply
+		// è‹¥æ”¶åˆ°çš„æ¶ˆæ¯ recv_buf[18]==0x5f && recv_buf[19]==0x3f :heartbeat reply
 		// success!
 	}
 
 	/**
-	 * ½ÓÊÕÀ´×ÔÍâ²¿Éè±¸µÄÇëÇóĞÅÏ¢
-	 * @param session	ÓëÍâ²¿Éè±¸µÄ»á»°	
-	 * @param ap	Íâ²¿Éè±¸ÊµÌåÀà
+	 * æ¥æ”¶æ¥è‡ªå¤–éƒ¨è®¾å¤‡çš„è¯·æ±‚ä¿¡æ¯
+	 * @param session	ä¸å¤–éƒ¨è®¾å¤‡çš„ä¼šè¯	
+	 * @param ap	å¤–éƒ¨è®¾å¤‡å®ä½“ç±»
 	 */
-	public void outside_send_to_socket(IoSession session,AcessPoint ap) {
-		String[] tel_buf = new String[37];//ÏòÊÖ»ú·µ»ØµÄĞÅÏ¢
-		char[] newbuf = new char[37];//Ïòwifi·¢ËÍµÄĞÅÏ¢£¨³¤¶È²»¶Ô£©
-		tel_buf[0] = MSG_ERROR_STATUS+"";
-		tel_buf[PARA_OFFSET] = NO_ERROR+"";
-		StringBuffer sb = new StringBuffer();
-		// µÃµ½wifi_id
-		for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
-			sb.append(ap.getRecv()[i]);
-		}
-		String mac_id = new String(sb);
-		System.out.println("mac_id is:" + mac_id);
-		// µÃµ½com_id
-		sb = new StringBuffer();
-		for(int i = COMID_OFFSET;i<COMID_OFFSET+8;i++){
-			sb.append(ap.getRecv()[i]);
-		}
-		String com_id = new String(sb);
-		System.out.println("com_id is:" + com_id);
-		
-		
-		// ¸úsent_to_socket²î²»¶à
-		// step1:ÏÈÔÚrecord±íÖĞ²éÕÒ¼ÇÂ¼
-		Record record = DBDaoImpl.getInfoFromRecord(ap);
-		if(!record.isRecorded()){
-			// ÉèÖÃÎ´²éµ½ĞÅÏ¢
-			tel_buf[PARA_OFFSET] = NO_SOCKET_ADDR+"";
-		}
-		
-		
-		// step2:ÔÚcomsocket±íÀï²éÑ¯ÊÇ·ñ´æÔÚ´ËcomidµÄ¼ÇÂ¼
-		boolean hasPermission = DBDaoImpl.hasItemInComsocket(mac_id, com_id);
-		if(!hasPermission){
-			//ÉèÖÃÊÚÈ¨ĞÅÏ¢
-			tel_buf[PARA_OFFSET] = NO_PERMISSION+"";
-		}
-		
-		// Èç¹ûstep1£¬step2 ÈÎÒ»Ò»²½²»´æÔÚ£¬¾ÍÏòÊÖ»ú·µ»ØĞÅÏ¢
-		if(!(NO_ERROR+"").equals(tel_buf[PARA_OFFSET])){
-//			send(session, tel_buf);
-			return;
-		}
-		// step3:Ïòwifi·¢ĞÅÏ¢
-		
-	}
+	public void outside_send_to_socket(IoSession session, AcessPoint ap) {
+        //è®¡ç®—å‘é€ç»™wifiæ’åº§çš„newbufçš„é•¿åº¦
+        int paramsLen = ap.getRecv().length - ACTION_OFFSET;
+        int rawLen = paramsLen + 16;
+        int cookLen = (((int) (rawLen / 16)) + ((rawLen % 16 == 0) ? 0 : 1)) * 16;
+        int resultLen= 21+ cookLen;
+        byte[] tel_buf = new byte[37];//å‘æ‰‹æœºè¿”å›çš„ä¿¡æ¯
+        byte[] newbuf = new byte[resultLen];//å‘wifiå‘é€çš„ä¿¡æ¯
+        logger.info("the resultlen is:");
+        logger.info(resultLen);
+
+        tel_buf[0] = (byte) MSG_ERROR_STATUS;
+        tel_buf[PARA_OFFSET] = NO_ERROR;
+
+        for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
+            tel_buf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
+        }
+        for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
+            newbuf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
+        }
+
+        StringBuffer sb = new StringBuffer();
+        for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
+            sb.append(ap.getRecv()[i]);
+        }
+        String mac_id = new String(sb);
+        System.out.println("mac_id is:" + mac_id);
+        // è®¾ç½®com_id
+        sb = new StringBuffer();
+        for (int i = COMID_OFFSET; i < COMID_OFFSET + 8; i++) {
+            sb.append(ap.getRecv()[i]);
+        }
+        String com_id = new String(sb);
+        System.out.println("com_id is:" + com_id);
+
+        // è·Ÿsent_to_socketå·®ä¸å¤š
+        // step1:å…ˆåœ¨recordè¡¨ä¸­æŸ¥æ‰¾è®°å½•
+        Record record = DBDaoImpl.getInfoFromRecord(ap);
+        boolean isRecorded = record.isRecorded();
+        if (!isRecorded) {
+            // è®¾ç½®æœªæŸ¥åˆ°ä¿¡æ¯
+            logger.warn("read database error\\n");
+            tel_buf[PARA_OFFSET] = NO_SOCKET_ADDR;
+        }
+        // step2:åœ¨comsocketè¡¨é‡ŒæŸ¥è¯¢æ˜¯å¦å­˜åœ¨æ­¤comidçš„è®°å½•
+        boolean hasPermission = DBDaoImpl.hasItemInComsocket(mac_id, com_id);
+        if (!hasPermission) {
+            //è®¾ç½®ä¸ºæœªæˆæƒ
+            tel_buf[PARA_OFFSET] = NO_PERMISSION;
+        }
+        // å¦‚æœstep1ï¼Œstep2 ä»»ä¸€ä¸€æ­¥ä¸å­˜åœ¨ï¼Œå°±å‘æ‰‹æœºè¿”å›ä¿¡æ¯
+        if(!(NO_ERROR+"").equals(tel_buf[PARA_OFFSET])) {
+            if (!send(session, tel_buf)) {
+                logger.warn("send to mobile error\n");
+            }
+            return;
+        }
+        //åŠ å¯†
+        //generate_AES_MD5(&host,buf+ACTION_OFFSET,1,newbuf);???
+
+        // step3:å‘wifiå‘ä¿¡æ¯
+        String[] mobileIpString = ((InetSocketAddress) session.getRemoteAddress()).getAddress().getHostAddress().split(".");
+        byte[] mobileIp = new byte[4];
+        for (int i = 0; i < mobileIp.length; i++) {
+            mobileIp[i] = (byte) Integer.parseInt(mobileIpString[i]);
+        }
+        logger.info("outside_send_to_socket() mobileIp=");
+        logger.info(mobileIp.toString());
+        for (int i = 8; i < 12; i++) {
+            newbuf[i] = mobileIp[i - 8];
+        }
+        newbuf[13] = (byte) ((InetSocketAddress) session.getRemoteAddress()).getPort();
+        newbuf[12] = (byte) (((InetSocketAddress) session.getRemoteAddress()).getPort() >> 8);
+
+        if(true){
+            logger.info(newbuf);
+            logger.info("this is what we send to socket\r\n");
+        }
+
+        IoFuture connFuture = new NioDatagramConnector().connect(new InetSocketAddress(
+                Helper.longToIp(record.getWifi_ipv4()), record.getWifi_ipv4_port()));
+        IoSession sessionWifi = connFuture.getSession();
+        if (!send(sessionWifi, newbuf)) {
+            logger.warn("send to wifi socket error");
+        }
+        tel_buf[PARA_OFFSET] = NO_ERROR;
+        if (!send(session, tel_buf)) {
+            logger.warn("send to mobile error\n");
+        }
+
+    }
 
 	/**
-	 * Ïò¿Í»§¶Ë·¢ËÍĞÅÏ¢
+	 * å‘å®¢æˆ·ç«¯å‘é€ä¿¡æ¯
 	 * 
 	 * @param session
 	 * @param data
