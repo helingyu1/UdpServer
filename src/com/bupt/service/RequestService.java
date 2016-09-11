@@ -124,10 +124,33 @@ public class RequestService {
 	
 
 	/**
-	 * 发送手机(数据包不作处理直接发往手机)
+	 * 将插座发来的信息发送手机(数据包不作处理直接发往手机)
 	 */
-	public void send_to_mobile(AcessPoint ap) {
-		// 收到消息后，直接原封不动原路径返回
+	public void send_to_mobile(IoSession session,AcessPoint ap) {
+		// 设置手机的Ip和port
+		String[] recv = ap.getRecv();
+		byte[] send = new byte[recv.length];
+		for(int i=0;i<recv.length;i++)
+			send[i] = (byte)Integer.parseInt(recv[i], 16);
+		// 设置ip
+		StringBuffer sb = new StringBuffer();
+		for(int i=8;i<12;i++){
+			sb.append(recv[i]);
+			if(i!=11)
+				sb.append(".");
+		}
+		String ip = new String(sb);
+		// 设置端口号
+		int high = Integer.parseInt(recv[12], 16);
+		int low = Integer.parseInt(recv[13], 16);
+		int port = (high << 8) +low;
+		InetSocketAddress addr = new InetSocketAddress("127.0.0.1", 12345);
+		if(!send(session, send, addr)){
+			logger.warn("Failure!Repost to mobile failed!");
+			return;
+		}
+		logger.info("Succeed!Repost to mobile succeed!");
+		
 	}
 
 	/**
@@ -303,9 +326,15 @@ public class RequestService {
     }
 
 	public static void main(String[] args) {
-		String a = "e";
-		byte b = (byte) Integer.parseInt(a, 16);
-		System.out.println(b);
+//		String a = "e";
+//		byte b = (byte) Integer.parseInt(a, 16);
+//		System.out.println(b);
 		// detect_alive(null);
+		int high = Integer.parseInt("23", 16);
+		System.out.println("high:"+high);
+		int low = Integer.parseInt("52", 16);
+		System.out.println("low:"+low);
+		long port = (high << 8) +low;
+		System.out.println(port);
 	}
 }

@@ -120,7 +120,7 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 			service.send_to_socket(session,ap);
 		} else if (swt >= 128) { // 功能5：数据包不做处理直接发给手机
 			logger.debug("test:进入分支【5】，数据包不做处理直接发给手机");
-			service.send_to_mobile(ap);
+			service.send_to_mobile(session,ap);
 		}
 	}
 	
