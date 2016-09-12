@@ -84,11 +84,7 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 		// step1:读取收到的数据
 		IoBuffer buffer = (IoBuffer) message;
 		String hex = buffer.getHexDump();
-		System.out.println("hex:"+hex);
 		String[] recv = hex.split(" ");
-		
-		// 转成字符数组
-		logger.debug("服务器接收到的数据："+Arrays.toString(recv));
 
 		// 得到wifi_id
 		StringBuffer sb = new StringBuffer();
@@ -96,16 +92,21 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 			sb.append(recv[i]);
 		}
 		String mac_id = new String(sb);
+		
 		// 设置此次请求的发起的实体
 		InetSocketAddress addr = (InetSocketAddress) session.getRemoteAddress();
 		String ipStr = addr.getAddress().getHostAddress();
+		int port = addr.getPort();
 		long ip = Helper.ipToLong(ipStr);
-		AcessPoint ap = new AcessPoint(ip,
-				addr.getPort(), mac_id,recv);
+		AcessPoint ap = new AcessPoint(ipStr,ip,
+				port, mac_id,recv);
+		
+		logger.debug("此次发起请求的终端信息："+ap);
+		logger.debug("服务器接收到的请求数据："+hex);
 
 		// step2:解析数据
 		int swt = Integer.parseInt(recv[0],16);
-		logger.debug("swt:"+swt);
+		logger.debug("解析出的命令字为:"+swt);
 		if (swt == 0) { // 功能1：写插座信息到数据库
 			logger.debug("test:进入分支【1】,写插座信息到数据库");
 			service.store_to_database(session,ap);

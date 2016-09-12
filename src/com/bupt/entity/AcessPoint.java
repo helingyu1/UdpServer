@@ -9,15 +9,23 @@ import java.util.Arrays;
  */
 
 public class AcessPoint {
+	private String ipStr;
 	private long ip;
 	private int port;
 	private String wifi_id;
 	private String[] recv;
-	public AcessPoint(long ip,int port,String wifi_id,String[] recv){
+	public AcessPoint(String ipStr,long ip,int port,String wifi_id,String[] recv){
+		this.ipStr = ipStr;
 		this.ip = ip;
 		this.port = port;
 		this.wifi_id = wifi_id;
 		this.recv = recv;
+	}
+	public String getIpStr() {
+		return ipStr;
+	}
+	public void setIpStr(String ipStr) {
+		this.ipStr = ipStr;
 	}
 	public long getIp() {
 		return ip;
@@ -47,8 +55,7 @@ public class AcessPoint {
 	
 	@Override
 	public String toString() {
-		return "AcessPoint [ip=" + ip + ", port=" + port + ", wifi_id="
-				+ wifi_id + ", recv=" + Arrays.toString(recv) + "]";
+		return "Request Entity [ip=" + ipStr + ", port=" + port+"]";
 	}
 	
 	
