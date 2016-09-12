@@ -312,9 +312,16 @@ public class RequestService {
 		}
 
 	}
+	/**
+	 * 转发信息
+	 * @param ap
+	 */
+	public void repost_request(AcessPoint ap){
+		
+	}
 
 	/**
-	 * 向客户端发送信息
+	 * 向当前客户端发送信息
 	 * 
 	 * @param session
 	 * @param data
@@ -327,6 +334,13 @@ public class RequestService {
 		return future.isWritten();
 	}
 
+	/**
+	 * 向会话之外的客户端发送信息
+	 * @param session
+	 * @param data
+	 * @param addr
+	 * @return
+	 */
 	public boolean send(IoSession session, byte[] data, InetSocketAddress addr) {
 		IoBuffer buffer = IoBuffer.wrap(data);
 		WriteFuture future = session.write(buffer, addr);

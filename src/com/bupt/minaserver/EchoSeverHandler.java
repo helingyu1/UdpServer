@@ -84,7 +84,8 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 		// step1:读取收到的数据
 		IoBuffer buffer = (IoBuffer) message;
 		String hex = buffer.getHexDump();
-		String[] recv = hex.split(" ");
+		String hex_lower = hex.toLowerCase();
+		String[] recv = hex_lower.split(" ");
 
 		// 得到wifi_id
 		StringBuffer sb = new StringBuffer();
@@ -102,7 +103,7 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 				port, mac_id,recv);
 		
 		logger.debug("此次发起请求的终端信息："+ap);
-		logger.debug("服务器接收到的请求数据："+hex);
+		logger.debug("服务器接收到的请求数据："+hex_lower);
 
 		// step2:解析数据
 		int swt = Integer.parseInt(recv[0],16);
@@ -113,7 +114,11 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 		} else if (swt == 99) { // 功能2：检测服务器是否在线
 			logger.debug("test:进入分支【2】,检测服务器是否在线");
 			service.detect_alive(session,ap);
-		} else if (swt > 100 && swt < 128) { // 功能3：第三方发送控制命令到服务器
+		}else if(swt == 110){
+			logger.debug("test:进入分支【5】,转发控制信息");
+			service.repost_request(ap);
+		}
+		else if (swt > 100 && swt < 128) { // 功能3：第三方发送控制命令到服务器
 			logger.debug("test:进入分支【3】,第三方发送控制命令到服务器");
 			service.outside_send_to_socket(session,ap);
 		} else if (swt >= 1 && swt < 128) { // 功能4：查看多个插座是否在线
