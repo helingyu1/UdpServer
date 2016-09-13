@@ -13,6 +13,7 @@ import org.apache.mina.transport.socket.nio.NioDatagramConnector;
 
 import com.bupt.dao.DBDaoImpl;
 import com.bupt.entity.AcessPoint;
+import com.bupt.entity.Global_info;
 import com.bupt.entity.Record;
 import com.bupt.utils.Helper;
 
@@ -25,6 +26,8 @@ import com.bupt.utils.Helper;
 public class RequestService {
 	private final Logger logger = Logger.getLogger(RequestService.class);
 	private DaoService service = new DaoService();
+	private MD5Service md5Service = new MD5Service();
+	private AESService aesService = new AESService();
 
 	// 数据偏移量
 	private static final int COMID_OFFSET = 1; // comid起始地址（8字节）
@@ -202,7 +205,7 @@ public class RequestService {
 		send[13] = (byte) cal.get(Calendar.SECOND);
 
 		// 发送响应信息
-		if(!send(session,send)){
+		if (!send(session, send)) {
 			logger.warn("Failure!Send detect response failed!");
 			return;
 		}
@@ -219,29 +222,29 @@ public class RequestService {
 	 */
 	public void outside_send_to_socket(IoSession session, AcessPoint ap) {
 		// 计算发送给wifi插座的newbuf的长度
+		Global_info host = new Global_info();
+		host.setCmd((byte) (Integer.parseInt(ap.getRecv()[0], 16) - 100));
+		host.setPass("".getBytes());
 		int paramsLen = ap.getRecv().length - ACTION_OFFSET;
 		int rawLen = paramsLen + 16;
 		int cookLen = (((int) (rawLen / 16)) + ((rawLen % 16 == 0) ? 0 : 1)) * 16;
-		int resultLen = 21 + cookLen;
+		int resultLen = 20 + cookLen;// 20是TSPackHeader的大小
+
 		byte[] tel_buf = new byte[37];// 向手机返回的信息
 		byte[] newbuf = new byte[resultLen];// 向wifi发送的信息
-		logger.info("the resultlen is:");
-		logger.info(resultLen);
+
+		logger.info("the resultlen is:" + resultLen);
 
 		tel_buf[0] = (byte) MSG_ERROR_STATUS;
 		tel_buf[PARA_OFFSET] = NO_ERROR;
 
-		for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
-			tel_buf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
-		}
-		for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
-			newbuf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
-		}
-
 		StringBuffer sb = new StringBuffer();
 		for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
+			tel_buf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
+			newbuf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
 			sb.append(ap.getRecv()[i]);
 		}
+
 		String mac_id = new String(sb);
 		System.out.println("mac_id is:" + mac_id);
 		// 设置com_id
@@ -268,56 +271,153 @@ public class RequestService {
 			tel_buf[PARA_OFFSET] = NO_PERMISSION;
 		}
 		// 如果step1，step2 任一一步不存在，就向手机返回信息
-		if (!(NO_ERROR + "").equals(tel_buf[PARA_OFFSET])) {
+		if (tel_buf[PARA_OFFSET] != NO_ERROR) {
 			if (!send(session, tel_buf)) {
 				logger.warn("send to mobile error\n");
 			}
 			return;
 		}
 		// 加密
-		// generate_AES_MD5(&host,buf+ACTION_OFFSET,1,newbuf);???
+		newbuf = generate_AES_MD5(host,
+				(byte) Integer.parseInt(ap.getRecv()[ACTION_OFFSET], 16), 1,
+				newbuf, session);
+
+		String outsideIp = Helper.longToIp(record.getWifi_ipv4());
+		int outsidePort = record.getWifi_ipv4_port();
+		logger.debug("outside socket ip：" + outsideIp + ",port:" + outsidePort);
 
 		// step3:向wifi发信息
-		String[] mobileIpString = ((InetSocketAddress) session
-				.getRemoteAddress()).getAddress().getHostAddress().split(".");
-		byte[] mobileIp = new byte[4];
-		for (int i = 0; i < mobileIp.length; i++) {
-			mobileIp[i] = (byte) Integer.parseInt(mobileIpString[i]);
+		if (send(session, newbuf, new InetSocketAddress(outsideIp, outsidePort))) {
+			logger.debug("Succeed!Send to [outside wifi socket] finished!");
+		} else {
+			logger.warn("Failure!Send to [outside wifi socket] failed!");
 		}
-		logger.info("outside_send_to_socket() mobileIp=");
-		logger.info(mobileIp.toString());
-		for (int i = 8; i < 12; i++) {
-			newbuf[i] = mobileIp[i - 8];
-		}
-		newbuf[13] = (byte) ((InetSocketAddress) session.getRemoteAddress())
-				.getPort();
-		newbuf[12] = (byte) (((InetSocketAddress) session.getRemoteAddress())
-				.getPort() >> 8);
+		// String[] mobileIpString = ((InetSocketAddress) session
+		// .getRemoteAddress()).getAddress().getHostAddress().split("\\.");
+		// byte[] mobileIp = new byte[4];
+		// for (int i = 0; i < mobileIp.length; i++) {
+		// mobileIp[i] = (byte) Integer.parseInt(mobileIpString[i]);
+		// }
+		// logger.info("outside_send_to_socket() mobileIp=");
+		// logger.info(Arrays.toString(mobileIp));
+		// for (int i = 8; i < 12; i++) {
+		// newbuf[i] = mobileIp[i - 8];
+		// }
+		// newbuf[13] = (byte) ((InetSocketAddress) session.getRemoteAddress())
+		// .getPort();
+		// newbuf[12] = (byte) (((InetSocketAddress) session.getRemoteAddress())
+		// .getPort() >> 8);
 
 		if (true) {
-			logger.info(newbuf);
-			logger.info("this is what we send to socket\r\n");
+			logger.info("newbuf is:" + Arrays.toString(newbuf));
+			logger.info("this is what we send to socket");
 		}
+		// // step3:向wifi发信息
+		// if(send(session,newbuf)){
+		// logger.debug("test:send 22222222222222222222222222222222222");
+		// }
 
-		IoFuture connFuture = new NioDatagramConnector()
-				.connect(new InetSocketAddress(Helper.longToIp(record
-						.getWifi_ipv4()), record.getWifi_ipv4_port()));
-		IoSession sessionWifi = connFuture.getSession();
-		if (!send(sessionWifi, newbuf)) {
-			logger.warn("send to wifi socket error");
-		}
+		// step4:向手机发信息
 		tel_buf[PARA_OFFSET] = NO_ERROR;
 		if (!send(session, tel_buf)) {
 			logger.warn("send to mobile error\n");
 		}
 
 	}
+
 	/**
 	 * 转发信息
+	 * 
 	 * @param ap
 	 */
-	public void repost_request(AcessPoint ap){
-		
+	public void repost_request(AcessPoint ap) {
+
+	}
+
+	/**
+	 * 
+	 * @param host
+	 *            cmd+pass
+	 * @param params
+	 *            参数
+	 * @param paramsLen
+	 *            1
+	 * @param newBuff
+	 *            响应数组
+	 * @return result 新响应数组
+	 */
+	public byte[] generate_AES_MD5(Global_info host, byte params,
+			int paramsLen, byte[] newBuff, IoSession session) {
+		byte[] result = newBuff;
+		// 构建发送数据包
+		int rawLen = paramsLen + 16;
+
+		byte packetType = host.getCmd();// 控制类型
+		byte encodeType = 1;// 加密类型
+		byte[] repeat = new byte[2];
+		repeat[0] = 1;
+		repeat[1] = 0;// 重发编号
+		byte[] time = new byte[4];// 时间戳
+		// byte[] phoneIpPort = new byte[6];// 手机ip port
+		// byte[] socketMac = new byte[6];// 插座mac
+		byte[] param = new byte[1];// 参数
+		param[0] = params;
+
+		result[0] = packetType;
+		result[1] = encodeType;
+		result[2] = repeat[0];
+		result[3] = repeat[1];
+		result[4] = time[0];
+		result[5] = time[1];
+		result[6] = time[2];
+		result[7] = time[3];
+		// 设置手机ip
+		String[] mobileIpString = ((InetSocketAddress) session
+				.getRemoteAddress()).getAddress().getHostAddress().split("\\.");
+		byte[] mobileIp = new byte[4];
+		for (int i = 0; i < mobileIp.length; i++) {
+			mobileIp[i] = (byte) Integer.parseInt(mobileIpString[i]);
+		}
+		result[8] = mobileIp[0];
+		result[9] = mobileIp[1];
+		result[10] = mobileIp[2];
+		result[11] = mobileIp[3];
+		// 设置手机端口
+		result[13] = (byte) ((InetSocketAddress) session.getRemoteAddress())
+				.getPort();
+		result[12] = (byte) (((InetSocketAddress) session.getRemoteAddress())
+				.getPort() >> 8);
+		// 设置mac地址（已在进方法前设置）
+		// result[14] = socketMac[0];
+		// result[15] = socketMac[1];
+		// result[16] = socketMac[2];
+		// result[17] = socketMac[3];
+		// result[18] = socketMac[4];
+		// result[19] = socketMac[5];
+
+		result[20] = param[0];
+
+		// 构建参数
+		// 构建加密密钥
+		byte[] pass = new byte[16];
+		for (int i = 0; i < 16; i++)
+			pass[i] = 0;
+		if (host.getPass() != null && host.getPass().length != 0
+				&& host.getPass()[0] != 0) {
+			pass = md5Service.encode_md5(host.getPass(), host.getPass().length);// 这个就是密钥
+			logger.debug("加密密钥是：" + Arrays.toString(pass));
+		}
+		// 取头的md5
+		byte[] rawData = new byte[rawLen];// 这个地方大小是17
+		byte[] headerMD5 = md5Service.encode_md5(result, 20);// 这个是需要加密的数据(20是头的长度),md5后是16字节
+		System.arraycopy(headerMD5, 0, rawData, 0, 16);
+		rawData[16] = params;
+
+		// 进行aes 加密
+		byte[] encodedData = aesService.encode_aes128(pass, rawData, 0, 17);
+		System.arraycopy(encodedData, 0, result, 20, 17);
+
+		return result;
 	}
 
 	/**
@@ -336,6 +436,7 @@ public class RequestService {
 
 	/**
 	 * 向会话之外的客户端发送信息
+	 * 
 	 * @param session
 	 * @param data
 	 * @param addr
@@ -357,8 +458,11 @@ public class RequestService {
 	}
 
 	public static void main(String[] args) {
-		Calendar cal = Calendar.getInstance();
-		System.out.println(cal.get(Calendar.DAY_OF_MONTH));
-		System.out.println(cal.get(Calendar.DAY_OF_WEEK));
+		String a = "";
+		byte[] b = a.getBytes();
+		if (b != null)
+			System.out.println(1);
+		if (b[0] != 0)
+			System.out.println(2);
 	}
 }
