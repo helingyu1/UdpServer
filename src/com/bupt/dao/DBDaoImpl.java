@@ -3,15 +3,13 @@ package com.bupt.dao;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Calendar;
-import java.util.Date;
-
-import javax.swing.text.html.HTMLDocument.HTMLReader.PreAction;
 
 import org.apache.log4j.Logger;
 
 import com.bupt.connection.ConnectionPool;
 import com.bupt.entity.AcessPoint;
 import com.bupt.entity.Record;
+import com.bupt.service.ExceptionService;
 import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.PreparedStatement;
 
@@ -28,6 +26,7 @@ public class DBDaoImpl {
 			connPool.createPool();
 		} catch (Exception e) {
 			e.printStackTrace();
+			ExceptionService.handleException(e, logger);
 		}
 	}
 
@@ -44,6 +43,7 @@ public class DBDaoImpl {
 			ps.execute();
 		} catch (SQLException e) {
 			e.printStackTrace();
+			ExceptionService.handleException(e, logger);
 		}finally{
 			connPool.returnConnection(conn);
 		}
@@ -81,6 +81,7 @@ public class DBDaoImpl {
 
 		} catch (SQLException e) {
 			e.printStackTrace();
+			ExceptionService.handleException(e, logger);
 		}finally{
 			connPool.returnConnection(conn);
 		}
@@ -104,6 +105,7 @@ public class DBDaoImpl {
 			ps.execute();
 		} catch (SQLException e) {
 			e.printStackTrace();
+			ExceptionService.handleException(e, logger);
 		}finally{
 			connPool.returnConnection(conn);
 		}

@@ -67,6 +67,11 @@ public class TSPackHeader {
 		mData[2] = (byte) seed;
 		mData[3] = (byte) (seed >> 8);
 	}
+	
+	public void setRepeat(){
+		mData[2] = (byte)1;
+		mData[3] = (byte)0;
+	}
 
 	public void setTimeStamp(int timeStamp) {
 		mData[4] = (byte) timeStamp;

@@ -286,7 +286,7 @@ public class RequestService {
 		int outsidePort = record.getWifi_ipv4_port();
 		logger.debug("outside socket ip：" + outsideIp + ",port:" + outsidePort);
 
-		byte[] newbuf = getSendData(ap);
+		byte[] newbuf = getSendData(session,ap);
 		// step3:向wifi发信息
 		if (send(session, newbuf, new InetSocketAddress(outsideIp, outsidePort))) {
 			logger.debug("Succeed!Send to [outside wifi socket] finished!");
@@ -313,7 +313,7 @@ public class RequestService {
 			logger.info("newbuf is:" + Arrays.toString(newbuf));
 			logger.info("this is what we send to socket");
 		}
-		// step3:向wifi发信息
+		// step3:向wifi发信息 FOR TEST
 //		if (send(session, newbuf)) {
 //			logger.debug("test:send 22222222222222222222222222222222222");
 //		}
@@ -491,19 +491,36 @@ public class RequestService {
 		return future.isWritten();
 	}
 
-	private byte[] getSendData(AcessPoint ap) {
-		byte cmdId = (byte)(Integer.parseInt(ap.getRecv()[0],16)-100);// 控制字
+	private byte[] getSendData(IoSession session,AcessPoint ap) {
+		byte cmdId = (byte)(Integer.parseInt(ap.getRecv()[0],16)-100);
 		TSPackHeader head = new TSPackHeader();
+		//控制类型[0]
 		head.setPacketType(cmdId);
+		//加密类型[1]
 		head.setEncodeType(TSPackHeader.ENCODE_TYPE_ENCRYPT_AES128);
-		int seed = new Random().nextInt(65535) + 1;
-		head.setSeed((short) seed);
+//		int seed = new Random().nextInt(65535) + 1;
+//		head.setSeed((short) seed);
+		//重发类型[2、3]
+		head.setRepeat();
+		//时间戳[4-7] 全是0
+		//mac[14-19]
 		byte[] mac = new byte[TSPackHeader.MAC_LENGTH];
 		for(int i=0;i<TSPackHeader.MAC_LENGTH;i++){
 			mac[i] = (byte)Integer.parseInt(ap.getRecv()[i+MAC_OFFSET], 16);
 		}
 		head.setMacAddress(mac, 0);// 设置mac地址
+		//手机地址[8-13]
+		byte[] phoneIp = new byte[TSPackHeader.PORT_LEN];
+		String [] ip = ((InetSocketAddress)session.getRemoteAddress()).getAddress().getHostAddress().split("\\.");
+		int port = ((InetSocketAddress)session.getRemoteAddress()).getPort();
+		for(int i=0;i<ip.length;i++)
+			phoneIp[i] = (byte)Integer.parseInt(ip[i]);
+		phoneIp[5] = (byte) port;
+        phoneIp[4] = (byte) (port >> 8);
+        head.setPort(phoneIp, 0);
+		
 
+        // 头信息设置完毕，获取头的md5
 		byte[] headBytes = head.getBytes();
 		byte[] md5 = null;
 		try {
@@ -587,11 +604,11 @@ public class RequestService {
 	}
 
 	public static void main(String[] args) {
-		String a = "";
-		byte[] b = a.getBytes();
-		if (b != null)
-			System.out.println(1);
-		if (b[0] != 0)
-			System.out.println(2);
+		String[] ip = "101.5.140.153".split("\\.");
+		System.out.println(Arrays.toString(ip));
+		byte[] phoneIp = new byte[4];
+		for(int i=0;i<ip.length;i++)
+			phoneIp[i] = (byte)Integer.parseInt(ip[i]);
+		System.out.println(Arrays.toString(phoneIp));
 	}
 }
