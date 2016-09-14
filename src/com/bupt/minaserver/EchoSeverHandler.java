@@ -116,7 +116,7 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 			service.detect_alive(session,ap);
 		}else if(swt == 110){
 			logger.debug("test:进入分支【5】,转发控制信息");
-			service.repost_request(ap);
+			service.repost_request(session,ap);
 		}
 		else if (swt > 100 && swt < 128) { // 功能3：第三方发送控制命令到服务器
 			logger.debug("test:进入分支【3】,第三方发送控制命令到服务器");

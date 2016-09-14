@@ -93,6 +93,16 @@ public class Helper {
 //		sb.append(".");
 		return sb.toString();
 	}
+	public static boolean isEmpty(byte[] b,int len){
+		boolean rtn = true;
+		for(int i=0;i<len;i++){
+			if(b[i]!=0){
+				rtn = false;
+				break;
+			}				
+		}
+		return rtn;
+	}
 
 	public static void main(String[] args) {
 		// System.out.println(fill("abc", 4, '0'));

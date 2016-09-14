@@ -3,18 +3,18 @@ package com.bupt.service;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Random;
 
 import org.apache.log4j.Logger;
 import org.apache.mina.core.buffer.IoBuffer;
-import org.apache.mina.core.future.IoFuture;
 import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.session.IoSession;
-import org.apache.mina.transport.socket.nio.NioDatagramConnector;
 
 import com.bupt.dao.DBDaoImpl;
 import com.bupt.entity.AcessPoint;
 import com.bupt.entity.Global_info;
 import com.bupt.entity.Record;
+import com.bupt.entity.TSPackHeader;
 import com.bupt.utils.Helper;
 
 /**
@@ -231,7 +231,7 @@ public class RequestService {
 		int resultLen = 20 + cookLen;// 20是TSPackHeader的大小
 
 		byte[] tel_buf = new byte[37];// 向手机返回的信息
-		byte[] newbuf = new byte[resultLen];// 向wifi发送的信息
+//		byte[] newbuf = new byte[resultLen];// 向wifi发送的信息
 
 		logger.info("the resultlen is:" + resultLen);
 
@@ -241,7 +241,7 @@ public class RequestService {
 		StringBuffer sb = new StringBuffer();
 		for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
 			tel_buf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
-			newbuf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
+//			newbuf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
 			sb.append(ap.getRecv()[i]);
 		}
 
@@ -278,14 +278,15 @@ public class RequestService {
 			return;
 		}
 		// 加密
-		newbuf = generate_AES_MD5(host,
-				(byte) Integer.parseInt(ap.getRecv()[ACTION_OFFSET], 16), 1,
-				newbuf, session);
+//		newbuf = generate_AES_MD5(host,
+//				(byte) Integer.parseInt(ap.getRecv()[ACTION_OFFSET], 16), 1,
+//				newbuf, session);
 
 		String outsideIp = Helper.longToIp(record.getWifi_ipv4());
 		int outsidePort = record.getWifi_ipv4_port();
 		logger.debug("outside socket ip：" + outsideIp + ",port:" + outsidePort);
 
+		byte[] newbuf = getSendData(ap);
 		// step3:向wifi发信息
 		if (send(session, newbuf, new InetSocketAddress(outsideIp, outsidePort))) {
 			logger.debug("Succeed!Send to [outside wifi socket] finished!");
@@ -312,26 +313,67 @@ public class RequestService {
 			logger.info("newbuf is:" + Arrays.toString(newbuf));
 			logger.info("this is what we send to socket");
 		}
-		// // step3:向wifi发信息
-		// if(send(session,newbuf)){
-		// logger.debug("test:send 22222222222222222222222222222222222");
-		// }
-
-		// step4:向手机发信息
-		tel_buf[PARA_OFFSET] = NO_ERROR;
-		if (!send(session, tel_buf)) {
-			logger.warn("send to mobile error\n");
-		}
+		// step3:向wifi发信息
+//		if (send(session, newbuf)) {
+//			logger.debug("test:send 22222222222222222222222222222222222");
+//		}
 
 	}
 
 	/**
-	 * 转发信息
+	 * 收到0x6e消息，改为0x02 其他流程跟send_to_socket一致
 	 * 
+	 * @param session
 	 * @param ap
 	 */
-	public void repost_request(AcessPoint ap) {
+	public void repost_request(IoSession session, AcessPoint ap) {
+		byte[] newbuf = RequestService.String2Byte(ap.getRecv()); // 发送给wifi插座的内容
 
+		newbuf[0] = 2;
+
+		// step1:在record表中查询wifi_ipv4,wifi_ipv4_port
+		Record record = DBDaoImpl.getInfoFromRecord(ap);
+		if (!record.isRecorded()) {
+			logger.debug("read database error");
+			return;
+		}
+		logger.info("Succeed!Find wifi ip and port for mac_id:"
+				+ ap.getWifi_id());
+		// step2:根据查出ip 端口号，向其发送信息，测试是否在线
+		// 将手机ip和端口号写入newbuf
+		String mobileIpString = ((InetSocketAddress) session.getRemoteAddress())
+				.getAddress().getHostAddress();
+
+		String[] mobileIpStringArray = mobileIpString.split("\\.");
+		logger.debug("telephone ip is:" + Arrays.toString(mobileIpStringArray));
+		byte[] mobileIp = new byte[4];
+		for (int i = 0; i < mobileIp.length; i++) {
+			mobileIp[i] = (byte) Integer.parseInt(mobileIpStringArray[i]);
+		}
+		logger.info("send_to_socket() mobileIp=" + Arrays.toString(mobileIp));
+		for (int i = 8; i < 12; i++) {
+			newbuf[i] = mobileIp[i - 8];
+		}
+		newbuf[13] = (byte) ((InetSocketAddress) session.getRemoteAddress())
+				.getPort();
+		newbuf[12] = (byte) (((InetSocketAddress) session.getRemoteAddress())
+				.getPort() >> 8);
+
+		if (newbuf[18] == 0x5f && newbuf[19] == 0x3f) {
+			logger.info(newbuf);
+			logger.info("this is what we send to socket\r\n");
+		}
+
+		// step3:向wifi插座转发信息
+		logger.debug("newbuf is:" + Arrays.toString(newbuf));
+		if (send(session, newbuf,
+				new InetSocketAddress(Helper.longToIp(record.getWifi_ipv4()),
+						record.getWifi_ipv4_port()))) {
+			logger.debug("Succeed!Repost Send to wifi socket finished!");
+		} else {
+			logger.warn("Failure!Repost Send to wifi socket failed!");
+		}
+		logger.debug("Succeed!");
 	}
 
 	/**
@@ -346,7 +388,7 @@ public class RequestService {
 	 *            响应数组
 	 * @return result 新响应数组
 	 */
-	public byte[] generate_AES_MD5(Global_info host, byte params,
+	private byte[] generate_AES_MD5(Global_info host, byte params,
 			int paramsLen, byte[] newBuff, IoSession session) {
 		byte[] result = newBuff;
 		// 构建发送数据包
@@ -447,6 +489,93 @@ public class RequestService {
 		WriteFuture future = session.write(buffer, addr);
 		future.awaitUninterruptibly(100);
 		return future.isWritten();
+	}
+
+	private byte[] getSendData(AcessPoint ap) {
+		byte cmdId = (byte)(Integer.parseInt(ap.getRecv()[0],16)-100);// 控制字
+		TSPackHeader head = new TSPackHeader();
+		head.setPacketType(cmdId);
+		head.setEncodeType(TSPackHeader.ENCODE_TYPE_ENCRYPT_AES128);
+		int seed = new Random().nextInt(65535) + 1;
+		head.setSeed((short) seed);
+		byte[] mac = new byte[TSPackHeader.MAC_LENGTH];
+		for(int i=0;i<TSPackHeader.MAC_LENGTH;i++){
+			mac[i] = (byte)Integer.parseInt(ap.getRecv()[i+MAC_OFFSET], 16);
+		}
+		head.setMacAddress(mac, 0);// 设置mac地址
+
+		byte[] headBytes = head.getBytes();
+		byte[] md5 = null;
+		try {
+			md5 = AESUtilForDevice.getMD5(headBytes, 0, headBytes.length);
+			logger.debug("【outside】Head MD5 is:"+Arrays.toString(md5));
+		} catch (Exception e) {
+			// handle exception
+		}
+		if (null == md5) {
+			return null;
+		}
+		byte[] cmdData = { cmdId };
+		int cmdLen = 1;
+		int rawLen = md5.length + cmdLen;
+		int paddingLen = ((rawLen + 15) / 16) * 16;
+		byte[] rawdata = new byte[paddingLen];
+		for (int i = 0; i < rawdata.length; i++) {
+			rawdata[i] = 0;
+		}
+		System.arraycopy(md5, 0, rawdata, 0, md5.length);
+		if (cmdLen > 1)
+			System.arraycopy(cmdData, 0, rawdata, md5.length, cmdData.length);
+
+		// 获得aes key
+		byte[] aesKey = getAesKey(ap);
+		if (null == aesKey)
+			return null;
+
+		// 加密
+		byte[] encryptData = null;
+		try {
+			encryptData = AESUtilForDevice.encrypt(aesKey, rawdata, 0,
+					rawdata.length);
+		} catch (Exception e) {
+
+		}
+		byte[] result = new byte[headBytes.length + rawdata.length];
+		System.arraycopy(headBytes, 0, result, 0, headBytes.length);
+		System.arraycopy(encryptData, 0, result, headBytes.length,
+				rawdata.length);
+		logger.debug("【outside】result data length is:"+result.length);
+		logger.debug("【outside】result data is:"+Arrays.toString(result));
+		return result;
+	}
+
+	public byte[] getAesKey(AcessPoint ap) {
+		byte[] aesKey = null;
+		byte[] pass = new byte[16];// 设备密码16字节
+		if (ap.getRecv().length >= 36) { // 有16字节设备密码
+			for (int i = PARA_OFFSET; i < PARA_OFFSET + 16; i++) {
+				pass[i - PARA_OFFSET] = (byte) Integer.parseInt(
+						ap.getRecv()[i], 16);				
+			}
+			if(!Helper.isEmpty(pass, pass.length)){
+				try {
+					aesKey = AESUtilForDevice.getMD5(pass, 0, pass.length);
+				} catch (Exception e) {
+					e.printStackTrace();
+					return null;
+				}
+			}else{
+				aesKey = new byte[16];
+				for(int i=0;i<aesKey.length;i++)
+					aesKey[i] = 0;
+			}
+		} else { 	// 无16字节设备密码
+			aesKey = new byte[16];
+			for(int i=0;i<aesKey.length;i++)
+				aesKey[i] = 0;
+		}
+		logger.debug("【outside】aesKey is:"+Arrays.toString(aesKey));
+		return aesKey;
 	}
 
 	public static byte[] String2Byte(String[] s) {

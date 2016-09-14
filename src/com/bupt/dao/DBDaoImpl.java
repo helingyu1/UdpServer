@@ -241,11 +241,7 @@ public class DBDaoImpl {
 //		record.setWifi_ipv4(192);
 //		record.setWifi_ipv4_port(8080);	
 //		replaceToRecord(record);
-//		System.out.println(Integer.toHexString(2016));
-		logger.debug("debug");
-		logger.info("info");
-		logger.warn("warn");
-		logger.error("error");
+		System.out.println(Integer.toHexString(2016));
 	}
 
 }

@@ -1,2 +1,4 @@
 eclipse.preferences.version=1
+encoding//src/com/bupt/entity/TSPackHeader.java=UTF-8
+encoding//src/com/bupt/service/AESUtilForDevice.java=UTF-8
 encoding//src/com/bupt/service/RequestService.java=UTF-8
