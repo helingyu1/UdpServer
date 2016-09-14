@@ -16,14 +16,14 @@ import com.bupt.service.RequestService;
 import com.bupt.utils.Helper;
 
 /**
- * 该类接收并处理不同类型的消息
- * 发送接收用byte[],转成char[]来操作
+ * 该类接收并处理不同类型的消息 发送接收用byte[],转成char[]来操作
+ * 
  * @author helingyu
- *
+ * 
  */
 public class EchoSeverHandler extends IoHandlerAdapter {
 	static int sum = 0;
-	
+
 	private final Logger logger = Logger.getLogger(EchoSeverHandler.class);
 	// service
 	RequestService service = new RequestService();
@@ -93,49 +93,47 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 			sb.append(recv[i]);
 		}
 		String mac_id = new String(sb);
-		
+
 		// 设置此次请求的发起的实体
 		InetSocketAddress addr = (InetSocketAddress) session.getRemoteAddress();
 		String ipStr = addr.getAddress().getHostAddress();
 		int port = addr.getPort();
 		long ip = Helper.ipToLong(ipStr);
-		AcessPoint ap = new AcessPoint(ipStr,ip,
-				port, mac_id,recv);
-		
-		logger.debug("此次发起请求的终端信息："+ap);
-		logger.debug("服务器接收到的请求数据："+hex_lower);
+		AcessPoint ap = new AcessPoint(ipStr, ip, port, mac_id, recv);
+
+		logger.debug("此次发起请求的终端信息：" + ap);
+		logger.debug("服务器接收到的请求数据：" + hex_lower);
 
 		// step2:解析数据
-		int swt = Integer.parseInt(recv[0],16);
-		logger.debug("解析出的命令字为:"+swt);
+		int swt = Integer.parseInt(recv[0], 16);
+		logger.debug("解析出的命令字为:" + swt);
 		if (swt == 0) { // 功能1：写插座信息到数据库
 			logger.debug("test:进入分支【1】,写插座信息到数据库");
-			service.store_to_database(session,ap);
-		} else if (swt == 99) { // 功能2：检测服务器是否在线
+			service.store_to_database(session, ap);
+		} 
+		else if (swt == 99) { // 功能2：检测服务器是否在线
 			logger.debug("test:进入分支【2】,检测服务器是否在线");
-			service.detect_alive(session,ap);
-		}else if(swt == 110){
+			service.detect_alive(session, ap);
+		} else if (swt == 110) {
 			logger.debug("test:进入分支【5】,转发控制信息");
-			service.repost_request(session,ap);
-		}
-		else if (swt > 100 && swt < 128) { // 功能3：第三方发送控制命令到服务器
+			service.repost_request(session, ap);
+		} else if (swt > 100 && swt < 128) { // 功能3：第三方发送控制命令到服务器
 			logger.debug("test:进入分支【3】,第三方发送控制命令到服务器");
-			service.outside_send_to_socket(session,ap);
+			service.outside_send_to_socket(session, ap);
 		} else if (swt >= 1 && swt < 128) { // 功能4：查看多个插座是否在线
 			logger.debug("test:进入分支【4】,非第三方发送请求");
-			service.send_to_socket(session,ap);
+			service.send_to_socket(session, ap);
 		} else if (swt >= 128) { // 功能5：数据包不做处理直接发给手机
 			logger.debug("test:进入分支【5】，数据包不做处理直接发给手机");
-			service.send_to_mobile(session,ap);
+			service.send_to_mobile(session, ap);
 		}
 	}
-	
 
 	@Override
 	public void sessionCreated(IoSession session) throws Exception {
 		super.sessionCreated(session);
-//		System.out.println(((InetSocketAddress)session.getRemoteAddress()).getHostName());
-//		session.write("aaaa");
+		// System.out.println(((InetSocketAddress)session.getRemoteAddress()).getHostName());
+		// session.write("aaaa");
 	}
 
 	@Override
@@ -146,16 +144,15 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 
 	public static void main(String[] args) {
 
-//		String hex = "1111";
-//		String[] arr = Helper.hexToStringArray(hex);
-//		System.out.println(arr.length);
-//		for (int i = 0; i < arr.length; i++)
-//			System.out.println(arr[i]);
-//		char[] aa = {0x63,0x63,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x63};
-//		String b = new String(aa);
-//		System.out.println(b);
+		// String hex = "1111";
+		// String[] arr = Helper.hexToStringArray(hex);
+		// System.out.println(arr.length);
+		// for (int i = 0; i < arr.length; i++)
+		// System.out.println(arr[i]);
+		// char[] aa = {0x63,0x63,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x63};
+		// String b = new String(aa);
+		// System.out.println(b);
 		System.out.println(Integer.parseInt("ff", 16));
-
 
 	}
 }

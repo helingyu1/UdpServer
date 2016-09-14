@@ -231,7 +231,7 @@ public class RequestService {
 		int resultLen = 20 + cookLen;// 20是TSPackHeader的大小
 
 		byte[] tel_buf = new byte[37];// 向手机返回的信息
-//		byte[] newbuf = new byte[resultLen];// 向wifi发送的信息
+		// byte[] newbuf = new byte[resultLen];// 向wifi发送的信息
 
 		logger.info("the resultlen is:" + resultLen);
 
@@ -241,7 +241,7 @@ public class RequestService {
 		StringBuffer sb = new StringBuffer();
 		for (int i = MAC_OFFSET; i < MAC_OFFSET + 6; i++) {
 			tel_buf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
-//			newbuf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
+			// newbuf[i] = (byte) Integer.parseInt(ap.getRecv()[i], 16);
 			sb.append(ap.getRecv()[i]);
 		}
 
@@ -278,15 +278,15 @@ public class RequestService {
 			return;
 		}
 		// 加密
-//		newbuf = generate_AES_MD5(host,
-//				(byte) Integer.parseInt(ap.getRecv()[ACTION_OFFSET], 16), 1,
-//				newbuf, session);
+		// newbuf = generate_AES_MD5(host,
+		// (byte) Integer.parseInt(ap.getRecv()[ACTION_OFFSET], 16), 1,
+		// newbuf, session);
 
 		String outsideIp = Helper.longToIp(record.getWifi_ipv4());
 		int outsidePort = record.getWifi_ipv4_port();
 		logger.debug("outside socket ip：" + outsideIp + ",port:" + outsidePort);
 
-		byte[] newbuf = getSendData(session,ap);
+		byte[] newbuf = getSendData(session, ap);
 		// step3:向wifi发信息
 		if (send(session, newbuf, new InetSocketAddress(outsideIp, outsidePort))) {
 			logger.debug("Succeed!Send to [outside wifi socket] finished!");
@@ -491,57 +491,60 @@ public class RequestService {
 		return future.isWritten();
 	}
 
-	private byte[] getSendData(IoSession session,AcessPoint ap) {
-		byte cmdId = (byte)(Integer.parseInt(ap.getRecv()[0],16)-100);
+	private byte[] getSendData(IoSession session, AcessPoint ap) {
+		byte cmdId = (byte) (Integer.parseInt(ap.getRecv()[0], 16) - 100);
 		TSPackHeader head = new TSPackHeader();
-		//控制类型[0]
+		// 控制类型[0]
 		head.setPacketType(cmdId);
-		//加密类型[1]
+		// 加密类型[1]
 		head.setEncodeType(TSPackHeader.ENCODE_TYPE_ENCRYPT_AES128);
-//		int seed = new Random().nextInt(65535) + 1;
-//		head.setSeed((short) seed);
-		//重发类型[2、3]
+		// int seed = new Random().nextInt(65535) + 1;
+		// head.setSeed((short) seed);
+		// 重发类型[2、3]
 		head.setRepeat();
-		//时间戳[4-7] 全是0
-		//mac[14-19]
+		// 时间戳[4-7] 全是0
+		// mac[14-19]
 		byte[] mac = new byte[TSPackHeader.MAC_LENGTH];
-		for(int i=0;i<TSPackHeader.MAC_LENGTH;i++){
-			mac[i] = (byte)Integer.parseInt(ap.getRecv()[i+MAC_OFFSET], 16);
+		for (int i = 0; i < TSPackHeader.MAC_LENGTH; i++) {
+			mac[i] = (byte) Integer.parseInt(ap.getRecv()[i + MAC_OFFSET], 16);
 		}
 		head.setMacAddress(mac, 0);// 设置mac地址
-		//手机地址[8-13]
-		byte[] phoneIp = new byte[TSPackHeader.PORT_LEN];
-		String [] ip = ((InetSocketAddress)session.getRemoteAddress()).getAddress().getHostAddress().split("\\.");
-		int port = ((InetSocketAddress)session.getRemoteAddress()).getPort();
-		for(int i=0;i<ip.length;i++)
-			phoneIp[i] = (byte)Integer.parseInt(ip[i]);
-		phoneIp[5] = (byte) port;
-        phoneIp[4] = (byte) (port >> 8);
-        head.setPort(phoneIp, 0);
-		
+		// //手机地址[8-13] 此时还都是0
 
-        // 头信息设置完毕，获取头的md5
+		// 头信息设置完毕，获取头的md5
 		byte[] headBytes = head.getBytes();
 		byte[] md5 = null;
 		try {
 			md5 = AESUtilForDevice.getMD5(headBytes, 0, headBytes.length);
-			logger.debug("【outside】Head MD5 is:"+Arrays.toString(md5));
+			logger.debug("【outside】Head MD5 is:" + Arrays.toString(md5));
 		} catch (Exception e) {
 			// handle exception
 		}
 		if (null == md5) {
 			return null;
 		}
-		byte[] cmdData = { cmdId };
-		int cmdLen = 1;
+		// cmdLen
+		int cmdLen = ap.getRecv().length;
+		byte[] cmdData = null;
+		if (cmdLen > 0) {
+
+			cmdData = new byte[cmdLen];// 除去包头的原始信息
+			for (int i = 0; i < cmdLen; i++) {
+				cmdData[i] = (byte) (Integer.parseInt(ap.getRecv()[i], 16));
+			}
+		}
+
+		// byte[] cmdData = { cmdId };
+		// int cmdLen = 1;
 		int rawLen = md5.length + cmdLen;
+
 		int paddingLen = ((rawLen + 15) / 16) * 16;
 		byte[] rawdata = new byte[paddingLen];
 		for (int i = 0; i < rawdata.length; i++) {
 			rawdata[i] = 0;
 		}
 		System.arraycopy(md5, 0, rawdata, 0, md5.length);
-		if (cmdLen > 1)
+		if (cmdLen > 0)
 			System.arraycopy(cmdData, 0, rawdata, md5.length, cmdData.length);
 
 		// 获得aes key
@@ -557,41 +560,59 @@ public class RequestService {
 		} catch (Exception e) {
 
 		}
+		// 手机地址[8-13]
+		byte[] phoneIp = new byte[TSPackHeader.PORT_LEN];
+		String[] ip = ((InetSocketAddress) session.getRemoteAddress())
+				.getAddress().getHostAddress().split("\\.");
+		int port = ((InetSocketAddress) session.getRemoteAddress()).getPort();
+		for (int i = 0; i < ip.length; i++)
+			phoneIp[i] = (byte) Integer.parseInt(ip[i]);
+		phoneIp[5] = (byte) port;
+		phoneIp[4] = (byte) (port >> 8);
+		head.setPort(phoneIp, 0);
+		//
+		headBytes = head.getBytes();
 		byte[] result = new byte[headBytes.length + rawdata.length];
 		System.arraycopy(headBytes, 0, result, 0, headBytes.length);
 		System.arraycopy(encryptData, 0, result, headBytes.length,
 				rawdata.length);
-		logger.debug("【outside】result data length is:"+result.length);
-		logger.debug("【outside】result data is:"+Arrays.toString(result));
+		logger.debug("【outside】result data length is:" + result.length);
+		logger.debug("【outside】result data is:" + Arrays.toString(result));
 		return result;
 	}
 
-	public byte[] getAesKey(AcessPoint ap) {
+	private byte[] getAesKey(AcessPoint ap) {
 		byte[] aesKey = null;
 		byte[] pass = new byte[16];// 设备密码16字节
 		if (ap.getRecv().length >= 36) { // 有16字节设备密码
 			for (int i = PARA_OFFSET; i < PARA_OFFSET + 16; i++) {
 				pass[i - PARA_OFFSET] = (byte) Integer.parseInt(
-						ap.getRecv()[i], 16);				
+						ap.getRecv()[i], 16);
 			}
-			if(!Helper.isEmpty(pass, pass.length)){
+			// try {
+			// aesKey = AESUtilForDevice.getMD5(pass, 0, pass.length);
+			// } catch (Exception e) {
+			// e.printStackTrace();
+			// return null;
+			// }
+			if (!Helper.isEmpty(pass, pass.length)) {
 				try {
 					aesKey = AESUtilForDevice.getMD5(pass, 0, pass.length);
 				} catch (Exception e) {
 					e.printStackTrace();
 					return null;
 				}
-			}else{
+			} else {
 				aesKey = new byte[16];
-				for(int i=0;i<aesKey.length;i++)
+				for (int i = 0; i < aesKey.length; i++)
 					aesKey[i] = 0;
 			}
-		} else { 	// 无16字节设备密码
+		} else { // 无16字节设备密码
 			aesKey = new byte[16];
-			for(int i=0;i<aesKey.length;i++)
+			for (int i = 0; i < aesKey.length; i++)
 				aesKey[i] = 0;
 		}
-		logger.debug("【outside】aesKey is:"+Arrays.toString(aesKey));
+		logger.debug("【outside】aesKey is:" + Arrays.toString(aesKey));
 		return aesKey;
 	}
 
@@ -604,11 +625,13 @@ public class RequestService {
 	}
 
 	public static void main(String[] args) {
-		String[] ip = "101.5.140.153".split("\\.");
-		System.out.println(Arrays.toString(ip));
-		byte[] phoneIp = new byte[4];
-		for(int i=0;i<ip.length;i++)
-			phoneIp[i] = (byte)Integer.parseInt(ip[i]);
-		System.out.println(Arrays.toString(phoneIp));
+		// String[] ip = "101.5.140.153".split("\\.");
+		// System.out.println(Arrays.toString(ip));
+		// byte[] phoneIp = new byte[4];
+		// for (int i = 0; i < ip.length; i++)
+		// phoneIp[i] = (byte) Integer.parseInt(ip[i]);
+		// System.out.println(Arrays.toString(phoneIp));
+		byte a = (byte) 200;
+		System.out.println((int) a);
 	}
 }
