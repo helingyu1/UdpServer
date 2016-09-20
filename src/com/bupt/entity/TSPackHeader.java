@@ -12,7 +12,6 @@ public class TSPackHeader {
 	// uint8_t socketMac[6]; //鎻掑骇MAC
 	// uint8_t params[0]; //鍙傛暟
 	// } TSPackHeader; //鍗忚澶达紝涓嶇鏄姹傝繕鏄繑鍥為兘瑕佸寘鍚�
-	private final static String TAG = "TSPackHeader";
 	public static final int SIZE = 20;
 	public static final byte ENCODE_TYPE_ENCRYPT_NONE = 0;
 	public static final byte ENCODE_TYPE_ENCRYPT_AES128 = 1;

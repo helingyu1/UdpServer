@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import com.bupt.connection.ConnectionPool;
 import com.bupt.entity.AcessPoint;
 import com.bupt.entity.Record;
+import com.bupt.minaserver.MinaServer;
 import com.bupt.service.ExceptionService;
 import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.PreparedStatement;
@@ -20,7 +21,7 @@ public class DBDaoImpl {
 	private static ConnectionPool connPool;
 
 	static {
-		connPool = new ConnectionPool();
+		connPool = MinaServer.pool;
 		try {
 			// 创建数据库连接池
 			connPool.createPool();
@@ -212,6 +213,24 @@ public class DBDaoImpl {
 			connPool.returnConnection(conn);
 		}
 		return ret;
+	}
+	public static long getTimeFromRecord(String mac_id){
+		long time = 0L;
+		String sql = "select time from record where wifi_id=?";
+		Connection conn = null;
+		try {
+			conn = (Connection) connPool.getConnection();
+			PreparedStatement ps = (PreparedStatement) conn.prepareStatement(sql);
+			ps.setString(1, mac_id);
+			ResultSet rs = (ResultSet)ps.executeQuery();
+			if(rs.next())
+				time = rs.getLong("time");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}finally{
+			connPool.returnConnection(conn);
+		}
+		return time;
 	}
 
 	public static String getCurrentDateString() {

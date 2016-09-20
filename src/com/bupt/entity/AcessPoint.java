@@ -1,7 +1,5 @@
 package com.bupt.entity;
 
-import java.util.Arrays;
-
 /**
  * 该实体类，代表与服务器通信的节点
  * @author helingyu
@@ -9,11 +7,12 @@ import java.util.Arrays;
  */
 
 public class AcessPoint {
+	
 	private String ipStr;
 	private long ip;
 	private int port;
 	private String wifi_id;
-	private String[] recv;
+	private String[] recv;	// 服务器接收到的原始消息
 	public AcessPoint(String ipStr,long ip,int port,String wifi_id,String[] recv){
 		this.ipStr = ipStr;
 		this.ip = ip;

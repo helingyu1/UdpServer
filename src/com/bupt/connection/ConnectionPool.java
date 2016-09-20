@@ -1,9 +1,5 @@
 package com.bupt.connection;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Driver;
@@ -11,21 +7,19 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Enumeration;
-import java.util.Properties;
 import java.util.Vector;
 
 public class ConnectionPool {
 
-	private static String jdbcDriver = ""; // 数据库驱动
-	private static String dbUrl = ""; // 数据 URL
-	private static String dbUsername = ""; // 数据库用户名
-	private static String dbPassword = ""; // 数据库用户密码
+	public static String jdbcDriver = ""; // 数据库驱动
+	public static String dbUrl = ""; // 数据 URL
+	public static String dbUsername = ""; // 数据库用户名
+	public static String dbPassword = ""; // 数据库用户密码
 	private String testTable = ""; // 测试连接是否可用的测试表名，默认没有测试表
 	private int initialConnections = 10; // 连接池的初始大小
 	private int incrementalConnections = 5;// 连接池自动增加的大小
-	private int maxConnections = 150; // 连接池最大的大小
+	public static int maxConnections = 0; // 连接池最大的大小
 
-	private static final String path = "config/DB.properties";
 	private Vector connections = null; // 存放连接池中数据库连接的向量 , 初始时为 null
 	// 它中存放的对象为 PooledConnection 型
 
@@ -42,24 +36,6 @@ public class ConnectionPool {
 	 *            String 连接数据库用户的密码
 	 * 
 	 */
-	static {
-		Properties prop = new Properties();
-		FileInputStream fis;
-		try {
-			fis = new FileInputStream(new File(path));
-			prop.load(fis);
-			jdbcDriver = (String) prop.get("jdbcDriver");
-			dbUrl = (String) prop.get("dbUrl");
-			dbUsername = (String) prop.get("username");
-			dbPassword = (String) prop.get("password");
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-	}
 
 	public ConnectionPool(String jdbcDriver, String dbUrl, String dbUsername,
 			String dbPassword) {

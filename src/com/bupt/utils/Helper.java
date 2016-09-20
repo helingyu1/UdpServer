@@ -103,11 +103,38 @@ public class Helper {
 		}
 		return rtn;
 	}
+	
+	public static byte[] String2Byte(String[] s) {
+		byte[] res = new byte[s.length];
+		for (int i = 0; i < s.length; i++) {
+			res[i] = (byte) Integer.parseInt(s[i], 16);
+		}
+		return res;
+	}
+	
+	 public static String[] bytesToHexString(byte[] src) {
+	        //   StringBuilder stringBuilder = new StringBuilder("");
+	        if (src == null || src.length <= 0) {
+	            return null;
+	        }
+	        String[] res = new String[src.length];
+	        for (int i = 0; i < src.length; i++) {
+	            String temp = "";
+	            int v = src[i] & 0xFF;
+	            String hv = Integer.toHexString(v);
+	            if (hv.length() < 2) {
+	                temp += "0";
+	            }
+	            temp += hv;
+	            res[i] = temp;
+	        }
+	        return res;
+	    }
 
 	public static void main(String[] args) {
 		// System.out.println(fill("abc", 4, '0'));
 //		System.out.println(longToIp(ipToLong("127.1.0.1")));
-		System.out.println(longToIp(348704058L));
+		System.out.println(System.currentTimeMillis()/1000);
 	}
 
 }

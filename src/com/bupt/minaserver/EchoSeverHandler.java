@@ -3,11 +3,9 @@ package com.bupt.minaserver;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
-import java.util.Arrays;
 
 import org.apache.log4j.Logger;
 import org.apache.mina.core.buffer.IoBuffer;
-import org.apache.mina.core.future.WriteFuture;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
 
@@ -30,13 +28,7 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 
 	// 数据偏移量
 	private static final int MAC_OFFSET = 14;
-	private static final int ACTION_OFFSET = 36;// outside方法里用
-	private static final int PARA_OFFSET = 20;
-
-	// 标志
-	private static final int NO_SOCKET_ADDR = 4;
-	private static final int NO_ERROR = 0;
-
+	
 	public static final CharsetDecoder decoder = (Charset.forName("UTF-8"))
 			.newDecoder();
 
@@ -102,7 +94,7 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 		AcessPoint ap = new AcessPoint(ipStr, ip, port, mac_id, recv);
 
 		logger.debug("此次发起请求的终端信息：" + ap);
-		logger.debug("服务器接收到的请求数据：" + hex_lower);
+		logger.info("服务器接收到的请求数据：" + hex_lower);
 
 		// step2:解析数据
 		int swt = Integer.parseInt(recv[0], 16);
@@ -111,11 +103,15 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 			logger.debug("test:进入分支【1】,写插座信息到数据库");
 			service.store_to_database(session, ap);
 		} 
+		else if(swt == 98){
+			logger.debug("test:进入分支【7】,检测多个插座是否在线");
+			service.detect_wifi_alive(session, ap);
+		}
 		else if (swt == 99) { // 功能2：检测服务器是否在线
 			logger.debug("test:进入分支【2】,检测服务器是否在线");
 			service.detect_alive(session, ap);
 		} else if (swt == 110) {
-			logger.debug("test:进入分支【5】,转发控制信息");
+			logger.debug("test:进入分支【6】,转发控制信息");
 			service.repost_request(session, ap);
 		} else if (swt > 100 && swt < 128) { // 功能3：第三方发送控制命令到服务器
 			logger.debug("test:进入分支【3】,第三方发送控制命令到服务器");
