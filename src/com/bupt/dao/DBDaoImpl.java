@@ -34,9 +34,10 @@ public class DBDaoImpl {
 	public static void replaceToRecord(Record record) {
 		String sql = "replace into record(wifi_ipv4,wifi_ipv4_port,time,wifi_id) values(?,?,?,?)";
 		Connection conn = null;
+		PreparedStatement ps=null;
 		try {
 			conn = (Connection) connPool.getConnection();
-			PreparedStatement ps = (PreparedStatement) conn.prepareStatement(sql);
+			ps = (PreparedStatement) conn.prepareStatement(sql);
 			ps.setLong(1, record.getWifi_ipv4());
 			ps.setInt(2, record.getWifi_ipv4_port());
 			ps.setLong(3, System.currentTimeMillis()/1000);
@@ -46,6 +47,12 @@ public class DBDaoImpl {
 			e.printStackTrace();
 			ExceptionService.handleException(e, logger);
 		}finally{
+			if(ps!=null)
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			connPool.returnConnection(conn);
 		}
 		
@@ -56,14 +63,16 @@ public class DBDaoImpl {
 		record.setWifi_id(ap.getWifi_id());
 		logger.debug("wifi_id="+ap.getWifi_id());
 		Connection conn = null;
+		PreparedStatement ps =null;
+		ResultSet rs = null;
 		try {
 			String sql = "select wifi_ipv4,wifi_ipv4_port from record where wifi_id='"
 					+ ap.getWifi_id()+"'";
 			conn = (Connection) connPool.getConnection();
-			PreparedStatement ps = (PreparedStatement) conn
+			ps = (PreparedStatement) conn
 					.prepareStatement(sql);
 
-			ResultSet rs = ps.executeQuery(sql);
+			rs = ps.executeQuery(sql);
 
 			if(rs.next())
 			{
@@ -84,6 +93,18 @@ public class DBDaoImpl {
 			e.printStackTrace();
 			ExceptionService.handleException(e, logger);
 		}finally{
+			if(rs!=null)
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			if(ps!=null)
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			connPool.returnConnection(conn);
 		}
 		return record;
@@ -99,15 +120,22 @@ public class DBDaoImpl {
 		String sql = "insert into heartnumber(wifi_id,time_day,heart_num) values('"
 				+ wifi_id + "','" + time_day + "',1)";
 		Connection conn = null;
+		PreparedStatement ps = null;
 		try {
 			conn = (Connection) connPool.getConnection();
-			PreparedStatement ps = (PreparedStatement) conn
+			ps = (PreparedStatement) conn
 					.prepareStatement(sql);
 			ps.execute();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			ExceptionService.handleException(e, logger);
 		}finally{
+			if(ps!=null)
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			connPool.returnConnection(conn);
 		}
 	}
@@ -121,19 +149,34 @@ public class DBDaoImpl {
 	public static boolean hasItemInHeartdevice(String wifi_id) {
 		boolean ret = false;
 		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		
 		try {
 			conn = (Connection) connPool.getConnection();
 			String sql = "select * from heartdevice where wifi_id='" + wifi_id
 					+ "'";
-			PreparedStatement ps = (PreparedStatement) conn
+			ps = (PreparedStatement) conn
 					.prepareStatement(sql);
-			ResultSet rs = ps.executeQuery();
+			rs = ps.executeQuery();
 			if (rs.next())
 				ret = true;
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}finally{
+			if(rs!=null)
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			if(ps!=null)
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			connPool.returnConnection(conn);
 		}
 		return ret;
@@ -149,19 +192,34 @@ public class DBDaoImpl {
 		boolean ret = false;
 		String time_day = getCurrentDateString();
 		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		
 		try {
 			conn = (Connection) connPool.getConnection();
 			String sql = "select * from heartnumber where wifi_id='" + wifi_id
 					+ "' and time_day='" + time_day + "'";
-			PreparedStatement ps = (PreparedStatement) conn
+			ps = (PreparedStatement) conn
 					.prepareStatement(sql);
-			ResultSet rs = ps.executeQuery();
+			rs = ps.executeQuery();
 			if (rs.next())
 				ret = true;
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}finally{
+			if(rs!=null)
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			if(ps!=null)
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			connPool.returnConnection(conn);
 		}
 		return ret;
@@ -177,14 +235,21 @@ public class DBDaoImpl {
 		String sql = "update heartnumber set heart_num=heart_num+1 where wifi_id='"
 				+ wifi_id + "' and time_day='" + time_day + "'";
 		Connection conn = null;
+		PreparedStatement ps = null;
 		try {
 			conn = (Connection) connPool.getConnection();
-			PreparedStatement ps = (PreparedStatement) conn
+			ps = (PreparedStatement) conn
 					.prepareStatement(sql);
 			ps.execute();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}finally{
+			if(ps!=null)
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			connPool.returnConnection(conn);
 		}
 	}
@@ -199,17 +264,31 @@ public class DBDaoImpl {
 		boolean ret = false;
 		String sql = "select com_id from comsocket where wifi_id=? and com_id=?";
 		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
 			conn = (Connection) connPool.getConnection();
-			PreparedStatement ps = (PreparedStatement) conn.prepareStatement(sql);
+			ps = (PreparedStatement) conn.prepareStatement(sql);
 			ps.setString(1, wifi_id);
 			ps.setString(2, com_id);
-			ResultSet rs = (ResultSet)ps.executeQuery();
+			rs = (ResultSet)ps.executeQuery();
 			if(rs.next())
 				ret = true;
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}finally{
+			if(rs!=null)
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			if(ps!=null)
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			connPool.returnConnection(conn);
 		}
 		return ret;
@@ -218,16 +297,30 @@ public class DBDaoImpl {
 		long time = 0L;
 		String sql = "select time from record where wifi_id=?";
 		Connection conn = null;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
 			conn = (Connection) connPool.getConnection();
-			PreparedStatement ps = (PreparedStatement) conn.prepareStatement(sql);
+			ps = (PreparedStatement) conn.prepareStatement(sql);
 			ps.setString(1, mac_id);
-			ResultSet rs = (ResultSet)ps.executeQuery();
+			rs = (ResultSet)ps.executeQuery();
 			if(rs.next())
 				time = rs.getLong("time");
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}finally{
+			if(rs!=null)
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			if(ps!=null)
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			connPool.returnConnection(conn);
 		}
 		return time;

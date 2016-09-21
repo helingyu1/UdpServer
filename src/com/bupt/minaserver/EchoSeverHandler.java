@@ -6,6 +6,7 @@ import java.nio.charset.CharsetDecoder;
 
 import org.apache.log4j.Logger;
 import org.apache.mina.core.buffer.IoBuffer;
+import org.apache.mina.core.future.CloseFuture;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
 
@@ -94,7 +95,7 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 		AcessPoint ap = new AcessPoint(ipStr, ip, port, mac_id, recv);
 
 		logger.debug("此次发起请求的终端信息：" + ap);
-		logger.info("服务器接收到的请求数据：" + hex_lower);
+//		logger.info("服务器接收到的请求数据：" + hex_lower);
 
 		// step2:解析数据
 		int swt = Integer.parseInt(recv[0], 16);
@@ -123,6 +124,10 @@ public class EchoSeverHandler extends IoHandlerAdapter {
 			logger.debug("test:进入分支【5】，数据包不做处理直接发给手机");
 			service.send_to_mobile(session, ap);
 		}
+//		CloseFuture future = session.close(true);
+//		System.out.println(future.isClosed());
+		session.close(true);
+		session = null;
 	}
 
 	@Override

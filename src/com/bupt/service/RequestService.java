@@ -77,7 +77,7 @@ public class RequestService {
 			logger.debug("[Branch1]Failure!After saving info to DB,response to wifi failed!");
 			return;
 		}
-		logger.info("[Branch1]Succeed!After saving info to DB,response to wifi succeed!");
+		logger.debug("[Branch1]Succeed!After saving info to DB,response to wifi succeed!");
 	}
 
 	/**
@@ -105,7 +105,7 @@ public class RequestService {
 			}
 			return;
 		}
-		logger.info("[Branch4]Succeed!Find wifi ip and port for mac_id:"
+		logger.debug("[Branch4]Succeed!Find wifi ip and port for mac_id:"
 				+ ap.getWifi_id());
 		// step2:根据查出ip 端口号，向其发送信息，测试是否在线
 		// 将手机ip和端口号写入newbuf
@@ -137,9 +137,9 @@ public class RequestService {
 		if (send(session, newbuf,
 				new InetSocketAddress(Helper.longToIp(record.getWifi_ipv4()),
 						record.getWifi_ipv4_port()))) {
-			logger.info("[Branch4]Succeed!Send to wifi socket finished!");
+			logger.info("[Branch4]Succeed!Send to wifi socket finished!For packet"+Arrays.toString(ap.getRecv()));
 		} else {
-			logger.warn("[Branch4]Failure!Send to wifi socket failed!");
+			logger.warn("[Branch4]Failure!Send to wifi socket failed!For packet"+Arrays.toString(ap.getRecv()));
 		}
 
 		// step4:向手机发送正确响应信息
@@ -178,7 +178,7 @@ public class RequestService {
 			logger.warn("Failure!Repost to mobile failed!");
 			return;
 		}
-		logger.info("[Branch5]Succeed!Repost to mobile succeed!");
+		logger.info("[Branch5]Succeed!Repost to mobile succeed!For packet"+Arrays.toString(ap.getRecv()));
 
 	}
 
@@ -208,10 +208,10 @@ public class RequestService {
 
 		// 发送响应信息
 		if (!send(session, send)) {
-			logger.warn("[Branch2]Failure!Send detect response failed!");
+			logger.warn("[Branch2]Failure!Send detect response failed!For packet"+Arrays.toString(ap.getRecv()));
 			return;
 		}
-		logger.info("[Branch2]Succeed!Send detect response succeed!");
+		logger.info("[Branch2]Succeed!Send detect response succeed!For packet"+Arrays.toString(ap.getRecv()));
 	}
 
 	/**
@@ -289,9 +289,9 @@ public class RequestService {
 		byte[] newbuf = getSendData(session, ap);
 		// step3:向wifi发信息
 		if (send(session, newbuf, new InetSocketAddress(outsideIp, outsidePort))) {
-			logger.info("[Branch3]Succeed!Send to [outside wifi socket] finished!");
+			logger.info("[Branch3]Succeed!Send to [outside wifi socket] finished!For packet"+Arrays.toString(ap.getRecv()));
 		} else {
-			logger.warn("Failure!Send to [outside wifi socket] failed!");
+			logger.warn("Failure!Send to [outside wifi socket] failed!For packet"+Arrays.toString(ap.getRecv()));
 		}
 		if (true) {
 			logger.debug("this is what we send to socket");
@@ -343,7 +343,7 @@ public class RequestService {
 		if (!send(session, toSend)) {
 			logger.warn("[Branch7]send to mobile error");
 		}
-		logger.info("[Branch7]Success!Detect wifi response successfully!");
+		logger.info("[Branch7]Success!Detect wifi response successfully!For packet"+Arrays.toString(ap.getRecv()));
 	}
 
 	/**
@@ -365,7 +365,7 @@ public class RequestService {
 			logger.warn("[Branch6]read database error");
 			return;
 		}
-		logger.info("[Branch6]Succeed!Find wifi ip and port for mac_id:"
+		logger.debug("[Branch6]Succeed!Find wifi ip and port for mac_id:"
 				+ ap.getWifi_id());
 		// step2:根据查出ip 端口号，向其发送信息，测试是否在线
 		// 将手机ip和端口号写入newbuf
@@ -397,9 +397,9 @@ public class RequestService {
 		if (send(session, newbuf,
 				new InetSocketAddress(Helper.longToIp(record.getWifi_ipv4()),
 						record.getWifi_ipv4_port()))) {
-			logger.info("[Branch6]Succeed!Repost Send to wifi socket finished!");
+			logger.info("[Branch6]Succeed!Repost Send to wifi socket finished!For packet"+Arrays.toString(ap.getRecv()));
 		} else {
-			logger.warn("[Branch6]Failure!Repost Send to wifi socket failed!");
+			logger.warn("[Branch6]Failure!Repost Send to wifi socket failed!For packet"+Arrays.toString(ap.getRecv()));
 		}
 		logger.debug("Succeed!");
 	}
